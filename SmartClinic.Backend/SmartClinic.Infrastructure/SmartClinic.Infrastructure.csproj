@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" /><PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.7.1" /><PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.31" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SmartClinic.Application\SmartClinic.Application.csproj" />
+    <ProjectReference Include="..\SmartClinic.Domain\SmartClinic.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

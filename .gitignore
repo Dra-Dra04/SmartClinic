@@ -1,0 +1,16 @@
+
+SmartClinic.Backend/SmartClinic.API/appsettings.Development.json
+SmartClinic.Backend/SmartClinic.API/appsettings.Production.json
+*.user
+*.suo
+
+[Bb]in/
+[Oo]bj/
+node_modules/
+.next/
+out/
+.env
+.env.*.local
+
+.vs/
+.vscode/
