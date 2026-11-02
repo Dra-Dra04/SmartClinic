@@ -1,0 +1,6 @@
+{
+  "summary":  "Comprehensive architectural blueprint for isolating the SmartClinic system into two distinct root layouts: Portal Layout (for Guest and Patient with public portal, booking wizard, EMR history, and floating Messenger AI RAG widget) and Workspace Layout (for Receptionist, Doctor, and Admin with fixed 260px sidebar, high-density EMR workspace, subclinical referral coordination, and audit log inspector), accompanied by a sticky Demo Role Switcher Bar.",
+  "updatedAt":  "2026-10-31T17:22:35.960535152Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      // Early shim for browser extensions/interceptors attempting to override window.fetch
+      (function() {
+        try {
+          var _rawFetch = window.fetch;
+          var _fetchHandler = _rawFetch ? _rawFetch.bind(window) : function() {
+            return Promise.reject(new Error('Fetch not available'));
+          };
+          Object.defineProperty(window, 'fetch', {
+            get: function() {
+              return _fetchHandler;
+            },
+            set: function(fn) {
+              _fetchHandler = fn;
+            },
+            configurable: true,
+            enumerable: true
+          });
+        } catch (e) {
+          // Ignore if cannot redefine
+        }
+
+        // Suppress external extension errors
+        window.addEventListener('error', function(e) {
+          if (
+            (e.filename && e.filename.indexOf('chrome-extension://') !== -1) ||
+            (e.message && e.message.indexOf('Cannot set property fetch of') !== -1)
+          ) {
+            e.preventDefault();
+            e.stopPropagation();
+            return true;
+          }
+        }, true);
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>SmartClinic - Hệ thống Quản lý Phòng khám Đa khoa & Đặt lịch Khám tích hợp Trợ lý AI RAG</title>
+    <meta name="description" content="Nền tảng Quản lý Phòng khám Đa khoa, Đặt lịch khám đa nền tảng và Trợ lý AI Y tế sử dụng RAG theo chuẩn HIS chuyên nghiệp." />
+    <meta property="og:title" content="SmartClinic - Hệ thống Quản lý Phòng khám Đa khoa & Đặt lịch Khám tích hợp Trợ lý AI RAG" />
+    <meta property="og:description" content="Nền tảng Quản lý Phòng khám Đa khoa, Đặt lịch khám đa nền tảng và Trợ lý AI Y tế sử dụng RAG theo chuẩn HIS chuyên nghiệp." />
+    <meta property="og:type" content="website" />
+    <meta name="theme-color" content="#0084c7" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="SmartClinic" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="font-['Plus_Jakarta_Sans',sans-serif] bg-[#F8FAFC] text-slate-800 antialiased selection:bg-[#e3f2fd] selection:text-[#005a8b]">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

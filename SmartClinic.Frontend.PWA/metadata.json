@@ -1,0 +1,6 @@
+{
+  "name": "SmartClinic - Hệ thống Quản lý Phòng khám Đa khoa & Đặt lịch Khám tích hợp Trợ lý AI RAG",
+  "description": "Nền tảng Quản lý Phòng khám Đa khoa, Đặt lịch khám đa nền tảng và Trợ lý AI Y tế sử dụng RAG theo chuẩn HIS chuyên nghiệp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

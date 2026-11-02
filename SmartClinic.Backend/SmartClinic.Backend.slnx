@@ -1,7 +1,7 @@
 <Solution>
   <Project Path="SmartClinic.Auth.Tests/SmartClinic.Auth.Tests.csproj" />
+  <Project Path="SmartClinic.API/SmartClinic.API.csproj" />
   <Project Path="SmartClinic.Application/SmartClinic.Application.csproj" Id="0aaed603-b0b9-41ec-8681-9a87709ba7d1" />
-  <Project Path="SmartClinic.Backend/SmartClinic.API.csproj" />
   <Project Path="SmartClinic.Domain/SmartClinic.Domain.csproj" Id="0c4d557a-a942-4218-806b-dccb8d018d80" />
   <Project Path="SmartClinic.Infrastructure/SmartClinic.Infrastructure.csproj" Id="402489e9-a2ef-42d8-92ca-914d283347ac" />
 </Solution>

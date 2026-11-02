@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#58B947" />
+      <stop offset="100%" stop-color="#2E7D32" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#1B5E20" flood-opacity="0.25" />
+    </filter>
+  </defs>
+  <!-- Background with rounded squircle -->
+  <rect width="512" height="512" rx="128" fill="#FFFFFF" />
+  <rect x="24" y="24" width="464" height="464" rx="104" fill="url(#grad)" filter="url(#shadow)" />
+  
+  <!-- Medical Cross & Modern Sprout Emblem -->
+  <g fill="#FFFFFF" transform="translate(256, 256)">
+    <!-- Rounded Cross -->
+    <rect x="-35" y="-140" width="70" height="280" rx="35" opacity="0.95" />
+    <rect x="-140" y="-35" width="280" height="70" rx="35" opacity="0.95" />
+    
+    <!-- Central Heart/Shield Emblem with Leaf -->
+    <circle cx="0" cy="0" r="45" fill="#58B947" />
+    <path d="M-15,-5 C-25,-25 0,-35 0,-10 C0,-35 25,-25 15,-5 C5,15 0,25 0,25 C0,25 -5,15 -15,-5 Z" fill="#FFFFFF" />
+  </g>
+
+  <!-- AI Sparks/Dots -->
+  <circle cx="370" cy="140" r="14" fill="#FFEB3B" opacity="0.9" />
+  <circle cx="400" cy="170" r="8" fill="#FFEB3B" opacity="0.8" />
+  <circle cx="140" cy="370" r="10" fill="#E8F5E9" opacity="0.8" />
+</svg>
