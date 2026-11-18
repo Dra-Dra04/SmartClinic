@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+using SmartClinic.Application.Patients;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.Extensions.Options;
@@ -82,6 +84,25 @@ user.Role = UserRole.Doctor;
 var doctorLogin = await service.LoginAsync(new(user.Email, password));
 var doctor = validator.ValidateToken(doctorLogin.Value!.AccessToken, Validation(settings.SigningKey), out _);
 Check(doctor.IsInRole(UserRole.Doctor) && !doctor.IsInRole(UserRole.Patient), "Role is read from database on each login");
+user.DoctorProfile = new DoctorProfile { UserId = user.Id, Specialty = new Specialty { Name = "Test", WorkspaceType = "ClinicalService" } };
+Check((await service.LoginAsync(new(user.Email, password))).Value?.DoctorWorkspace == "ClinicalService", "Login exposes specialty workspace");
+Check((await service.GetCurrentUserAsync(user.Id)).Value?.DoctorWorkspace == "ClinicalService", "Session restore exposes specialty workspace");
+user.DoctorProfile = null;
+user.Role = UserRole.Receptionist;
+var receptionistLogin = await service.LoginAsync(new(user.Email, password));
+Check(receptionistLogin.IsSuccess, "Receptionist can log in");
+var receptionist = validator.ValidateToken(receptionistLogin.Value!.AccessToken, Validation(settings.SigningKey), out _);
+Check(receptionist.IsInRole(UserRole.Receptionist) && !receptionist.IsInRole(UserRole.Admin), "Receptionist JWT has only its assigned role");
+user.IsActive = false;
+Check((await service.LoginAsync(new(user.Email, password))).Error == AuthError.InvalidCredentials,
+    "Locked account cannot sign in with its correct password");
+user.IsActive = true;
+user.SessionVersion = Guid.NewGuid();
+var unlocked = await service.LoginAsync(new(user.Email, password));
+Check(unlocked.IsSuccess &&
+    validator.ValidateToken(unlocked.Value!.AccessToken, Validation(settings.SigningKey), out _)
+        .FindFirst("session_version")?.Value == user.SessionVersion.ToString(),
+    "Unlocked account receives a token with the current session version");
 user.Role = "unknown";
 Check((await service.LoginAsync(new(user.Email, password))).Error == AuthError.InvalidCredentials, "Unknown role cannot receive a token");
 Check((await service.GetCurrentUserAsync(Guid.NewGuid())).Error == AuthError.UserNotFound, "Deleted or unknown user rejected by me");
@@ -94,6 +115,41 @@ var rehashService = new AuthService(store, store, rehash, tokens);
 var savesBefore = store.Saves;
 Check((await rehashService.LoginAsync(new(user.Email, password))).IsSuccess &&
     user.PasswordHash == "upgraded-hash" && store.Saves == savesBefore + 1, "Successful login upgrades an outdated password hash");
+// Profile regressions use the same fake repository; no production database writes.
+var profiles = new PatientProfileService(store, store, TimeProvider.System);
+var initialProfile = await profiles.GetAsync(user.Id, default);
+Check(initialProfile is { IsProfileCompleted: false }, "Empty registered profile is incomplete");
+var validProfile = new UpdatePatientProfileRequest(" Nguyễn Văn Test ", "0912345678",
+    new DateOnly(2000, 1, 2), "Nam", "012345678901", null, " Địa chỉ test ",
+    170.25m, 65.5m, null, " Dị ứng test ", null);
+var savedProfile = await profiles.UpdateAsync(user.Id, validProfile, default);
+Check(savedProfile is { IsProfileCompleted: true, HeightCm: 170.25m, WeightKg: 65.5m }
+    && savedProfile.FullName == "Nguyễn Văn Test", "Profile persists measurements and trims fields");
+Check((await profiles.GetAsync(user.Id, default))?.Id == user.Id,
+    "Profile read is scoped to the requested identity");
+Check(await profiles.GetAsync(Guid.NewGuid(), default) is null, "Unknown identity cannot read profile");
+async Task RejectProfile(UpdatePatientProfileRequest request, string name)
+{
+    var before = store.Saves;
+    try { await profiles.UpdateAsync(user.Id, request, default); Check(false, name); }
+    catch (ValidationException) { Check(store.Saves == before, name); }
+}
+await RejectProfile(validProfile with { IdCardNumber = " ", HealthInsuranceNumber = null },
+    "Missing both identity documents rejected before save");
+await RejectProfile(validProfile with { DateOfBirth = new DateOnly(2999, 1, 1) }, "Future birthdate rejected");
+await RejectProfile(validProfile with { FullName = " " }, "Whitespace name rejected");
+await RejectProfile(validProfile with { Phone = "abc" }, "Invalid contact phone rejected");
+await RejectProfile(validProfile with { Gender = "invalid" }, "Invalid gender rejected");
+await RejectProfile(validProfile with { WeightKg = -1 }, "Negative measurement rejected");
+var withInsurance = await profiles.UpdateAsync(user.Id,
+    validProfile with { IdCardNumber = null, HealthInsuranceNumber = "BHYT-test", HeightCm = null, WeightKg = null }, default);
+Check(withInsurance is { IsProfileCompleted: true, HeightCm: null, WeightKg: null },
+    "Insurance alone satisfies identity gate and measurements may remain unknown");
+user.Role = UserRole.Doctor;
+Check(await profiles.GetAsync(user.Id, default) is null &&
+    await profiles.UpdateAsync(user.Id, validProfile, default) is null,
+    "Non-patient account cannot use patient profile service");
+user.Role = UserRole.Patient;
 Console.WriteLine($"All {passed} checks passed.");
 
 sealed class MemoryStore : IUserRepository, IUnitOfWork

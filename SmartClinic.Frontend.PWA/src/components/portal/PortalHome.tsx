@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { SPECIALTIES_DATA, DOCTORS_DATA, CLINICAL_SERVICES_CATALOG } from '../../services/mockData';
 import { Doctor, Specialty, HospitalArticle } from '../../types';
+import { PortalNews } from './PortalNews';
 import { useClinicStore } from '../../store/useClinicStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useChatStore } from '../../store/useChatStore';
@@ -51,7 +52,7 @@ export const PortalHome: React.FC<PortalHomeProps> = ({
   onOpenAuthModal,
 }) => {
   const { setPortalNav, articles } = useClinicStore();
-  const { activeRole } = useAuthStore();
+  const { activeRole, isDemo } = useAuthStore();
   const { sendPresetPrompt } = useChatStore();
 
   // In-place expanded specialty state on the Home page with zoom animation
@@ -129,15 +130,16 @@ export const PortalHome: React.FC<PortalHomeProps> = ({
                 </svg>
               </div>
               <div className="text-left">
-                <span className="text-[9px] font-bold tracking-wider text-slate-400 uppercase block">NATIONAL GERIATRIC HOSPITAL</span>
-                <span className="text-sm font-bold text-[#0084c7]">Bệnh viện Lão khoa Trung ương</span>
+                <span className="text-[9px] font-bold tracking-wider text-slate-400 uppercase block">PHUC AN INTERNATIONAL GENERAL HOSPITAL</span>
+                <span className="text-sm font-bold text-[#0084c7]">Bệnh viện Đa khoa quốc tế Phúc An</span>
               </div>
             </div>
 
             {/* Big Headline in Cyan Blue */}
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#0084c7] tracking-tight leading-tight uppercase">
               CHĂM SÓC SỨC KHỎE <br />
-              NGƯỜI CAO TUỔI
+              BẢN THÂN VÀ GIA ĐÌNH BẠN 
+              {/* <span className="text-[#00bfa5]"> CHUYÊN NGHIỆP</span> */}
             </h2>
 
             {/* Large Rounded Ocean Blue Box (Screenshot 1) */}
@@ -166,7 +168,7 @@ export const PortalHome: React.FC<PortalHomeProps> = ({
                 </div>
                 <div className="flex items-center justify-between pt-1 border-t border-white/10 text-xs">
                   <span className="text-emerald-200 flex items-center gap-1">
-                    <Bot className="w-3.5 h-3.5" /> TRỢ LÝ Y TẾ AI RAG:
+                    <Bot className="w-3.5 h-3.5" /> TRỢ LÝ TƯ VẤN AI
                   </span>
                   <span className="font-mono text-amber-300">1900 6868</span>
                 </div>
@@ -464,7 +466,7 @@ export const PortalHome: React.FC<PortalHomeProps> = ({
         </div>
 
         {/* 3 News Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {isDemo ? <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {displayNews.map((news) => (
             <div
               key={news.id}
@@ -498,11 +500,11 @@ export const PortalHome: React.FC<PortalHomeProps> = ({
               </div>
             </div>
           ))}
-        </div>
+        </div> : <PortalNews />}
       </section>
 
       {/* Article Detail Modal */}
-      {selectedNews && (
+      {isDemo && selectedNews && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 shadow-2xl relative space-y-4">
             <button

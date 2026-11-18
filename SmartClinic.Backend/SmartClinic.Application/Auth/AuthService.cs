@@ -54,8 +54,8 @@ public sealed class AuthService(IUserRepository users, IUnitOfWork unitOfWork,
         var user = await users.FindByEmailAsync(email, ct);
         // The adapter also verifies a dummy hash for a missing user.
         var check = passwords.Verify(user, request.Password);
-        if (user is null || check == PasswordCheckResult.Failed ||
-            user.Role is not (UserRole.Patient or UserRole.Doctor or UserRole.Admin))
+        if (user is null || !user.IsActive || check == PasswordCheckResult.Failed ||
+            user.Role is not (UserRole.Patient or UserRole.Doctor or UserRole.Admin or UserRole.Receptionist))
             return AuthResult<LoginResponse>.Failure(AuthError.InvalidCredentials, message);
         if (check == PasswordCheckResult.SuccessRehashNeeded)
         {
@@ -63,7 +63,7 @@ public sealed class AuthService(IUserRepository users, IUnitOfWork unitOfWork,
             await unitOfWork.SaveChangesAsync(ct);
         }
         var token = tokens.CreateAccessToken(user);
-        return AuthResult<LoginResponse>.Success(new(user.Id, user.Email, user.Role, token.Value, token.ExpiresAtUtc));
+        return AuthResult<LoginResponse>.Success(new(user.Id, user.Email, user.Role, token.Value, token.ExpiresAtUtc, user.DoctorProfile?.Specialty?.WorkspaceType));
     }
 
     public async Task<AuthResult<CurrentUserResponse>> GetCurrentUserAsync(Guid userId, CancellationToken ct = default)
@@ -71,7 +71,7 @@ public sealed class AuthService(IUserRepository users, IUnitOfWork unitOfWork,
         var user = await users.FindByIdAsync(userId, ct);
         return user is null
             ? AuthResult<CurrentUserResponse>.Failure(AuthError.UserNotFound, "Tài khoản không còn tồn tại.")
-            : AuthResult<CurrentUserResponse>.Success(new(user.Id, user.Email, user.Role));
+            : AuthResult<CurrentUserResponse>.Success(new(user.Id, user.Email, user.Role, user.DoctorProfile?.Specialty?.WorkspaceType));
     }
 
     private static string NormalizeEmail(string? email) => (email ?? "").Trim().ToLowerInvariant();

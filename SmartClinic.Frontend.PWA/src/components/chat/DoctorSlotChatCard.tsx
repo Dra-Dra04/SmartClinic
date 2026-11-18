@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { blockPreviewWrite } from '../../services/previewMode';
 import { Doctor, Specialty, TimeSlot } from '../../types';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useClinicStore } from '../../store/useClinicStore';
@@ -34,6 +35,7 @@ export const DoctorSlotChatCard: React.FC<DoctorSlotChatCardProps> = ({
   };
 
   const handleConfirmBooking = () => {
+    if (blockPreviewWrite()) return;
     if (currentUser.role === 'guest') {
       setDemoState(2);
       return;

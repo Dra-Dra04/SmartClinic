@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { AccountAvatar } from '../common/AccountAvatar';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useClinicStore } from '../../store/useClinicStore';
 import { 
@@ -15,7 +16,6 @@ import {
   ShieldCheck, 
   LogOut,
   ChevronRight,
-  Server,
   Users,
   Newspaper
 } from 'lucide-react';
@@ -25,7 +25,7 @@ interface WorkspaceLayoutProps {
 }
 
 export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({ children }) => {
-  const { currentUser, activeRole, activeDoctorId, setActiveDoctorId, setDemoState } = useAuthStore();
+  const { currentUser, activeRole, activeDoctorId, setActiveDoctorId, setDemoState, isDemo, logout } = useAuthStore();
   const { currentWorkspaceNav, setWorkspaceNav } = useClinicStore();
 
   const isReceptionist = activeRole === 'receptionist';
@@ -53,7 +53,12 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({ children }) =>
     { id: 'audit_logs', label: 'Nhật ký Kiểm toán (Audit Logs)', icon: <History className="w-4 h-4" /> },
   ];
 
-  const activeMenuItems = isReceptionist ? receptionistMenu : isDoctor ? doctorMenu : adminMenu;
+  useEffect(() => {
+    if (isDemo) return;
+    setWorkspaceNav(isAdmin ? 'user_management' : isReceptionist ? 'appointments' : activeRole === 'doctor_imaging' ? 'subclinical_orders' : 'emr_workspace');
+  }, [isDemo, isAdmin, isReceptionist, activeRole, setWorkspaceNav]);
+
+  const activeMenuItems = isReceptionist ? receptionistMenu : isDoctor ? doctorMenu.filter(item => isDemo || item.id === (activeRole === 'doctor_imaging' ? 'subclinical_orders' : 'emr_workspace')) : adminMenu;
 
   return (
     <div className="min-h-screen flex bg-[#F4F6F8] text-slate-800">
@@ -82,7 +87,7 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({ children }) =>
           </div>
 
           {/* DOCTOR CONTEXT SWITCHER: On top of Doctor Sidebar! */}
-          {isDoctor && (
+          {isDoctor && isDemo && (
             <div className="p-3 bg-slate-50 border-b border-slate-200/80">
               <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-1.5">
                 Ngữ cảnh Bác sĩ đăng nhập
@@ -149,11 +154,7 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({ children }) =>
         {/* Bottom User Info & Back to Public Portal */}
         <div className="p-3 border-t border-slate-100 bg-slate-50/50 space-y-2">
           <div className="flex items-center gap-2.5 p-2 bg-white rounded-xl border border-slate-200/80">
-            <img
-              src={currentUser.avatarUrl || 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=200&q=80'}
-              alt={currentUser.fullName}
-              className="w-8 h-8 rounded-lg object-cover border border-blue-300"
-            />
+            <AccountAvatar src={currentUser.avatarUrl} className="size-8 rounded-lg" />
             <div className="flex-1 min-w-0">
               <h4 className="text-xs font-bold text-slate-900 truncate">{currentUser.fullName}</h4>
               <p className="text-[10px] text-[#0072bc] font-semibold truncate">
@@ -163,7 +164,7 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({ children }) =>
           </div>
 
           <button
-            onClick={() => setDemoState(1)}
+            onClick={() => isDemo ? setDemoState(1) : logout()}
             className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[11px] font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -192,11 +193,6 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({ children }) =>
 
           {/* Right Status Badges */}
           <div className="flex items-center gap-3 text-xs">
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-[#005a8b] rounded-lg border border-blue-200 text-[11px] font-bold">
-              <Server className="w-3.5 h-3.5 text-[#0084c7]" />
-              <span>Gateway .NET 8: Đã kết nối</span>
-            </div>
-
             <div className="text-slate-500 text-[11px]">
               Phòng khám: <strong>{isDoctor ? (activeDoctorId === 'DOC-01' ? 'P.102 Tiêu hóa' : 'P.204 CĐHA') : 'Khu vực Tiếp đón'}</strong>
             </div>

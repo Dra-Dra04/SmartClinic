@@ -13,14 +13,14 @@ public sealed class UserRepository : IUserRepository
     }
     public Task<User?> FindByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
-        return _dbContext.Users.SingleOrDefaultAsync(
+        return _dbContext.Users.Include(u => u.DoctorProfile).ThenInclude(d => d!.Specialty).SingleOrDefaultAsync(
             user => user.Email == email,
             cancellationToken);
     }
 
     public Task<User?> FindByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        return _dbContext.Users.SingleOrDefaultAsync(
+        return _dbContext.Users.Include(u => u.DoctorProfile).ThenInclude(d => d!.Specialty).Include(user => user.PatientProfile).SingleOrDefaultAsync(
             user => user.Id == id,
             cancellationToken);
     }

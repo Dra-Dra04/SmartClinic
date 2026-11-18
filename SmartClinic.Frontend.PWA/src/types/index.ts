@@ -1,4 +1,4 @@
-export type UserRole = 'guest' | 'patient' | 'receptionist' | 'doctor_primary' | 'doctor_imaging' | 'admin';
+export type UserRole = 'guest' | 'patient' | 'receptionist' | 'doctor_primary' | 'doctor_imaging' | 'doctor' | 'admin';
 
 export type DemoStateId = 1 | 2 | 3 | 4 | 5 | 6;
 

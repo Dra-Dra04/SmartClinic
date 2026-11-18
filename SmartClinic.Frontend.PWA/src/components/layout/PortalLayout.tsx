@@ -32,7 +32,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({
   onOpenAuthModal,
   onOpenBookingWizard,
 }) => {
-  const { currentUser, activeRole, openOnboardingGuard, setDemoState } = useAuthStore();
+  const { currentUser, activeRole, openOnboardingGuard, setDemoState, isDemo, logout } = useAuthStore();
   const { currentPortalNav, setPortalNav } = useClinicStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isIntroDropdownOpen, setIsIntroDropdownOpen] = useState(false);
@@ -146,14 +146,14 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({
               </button>
             ) : (
               <div className="flex items-center gap-1.5 text-xs">
-                <span className="font-bold text-[#0084c7] hidden sm:inline">{currentUser.fullName}</span>
+                <span className="font-bold text-[#0084c7] hidden sm:inline">{currentUser.fullName || currentUser.email}</span>
                 {currentUser.isProfileCompleted ? (
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                 ) : (
                   <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
                 )}
                 <button
-                  onClick={() => setDemoState(1)}
+                  onClick={() => { if (isDemo) setDemoState(1); else logout(); setPortalNav('home'); }}
                   title="Đăng xuất"
                   className="p-1.5 text-slate-400 hover:text-red-500 rounded"
                 >

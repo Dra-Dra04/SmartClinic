@@ -1,4 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { AdminArticlesPage } from './AdminArticlesPage';
+import { AccountAvatar } from '../common/AccountAvatar';
+import { accountRole, listAdminAccounts, setAdminAccountStatus, deleteAdminAccount } from '../../services/adminAccountsService';
+import { AccountManagementDialog } from './AccountManagementDialog';
+import type { AccountList, AdminAccount } from '../../services/adminAccountsService';
+import { authErrorMessage } from '../../services/authService';
 import { useClinicStore } from '../../store/useClinicStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { 
@@ -56,7 +62,7 @@ export const AdminWorkspace: React.FC = () => {
     timeSlots,
     visits,
     appointments,
-    users,
+    users: demoUsers,
     articles,
     toggleRagDocActive, 
     approveAndIndexRagDoc, 
@@ -72,7 +78,7 @@ export const AdminWorkspace: React.FC = () => {
     togglePublishArticle,
     toggleFeatureArticle
   } = useClinicStore();
-  const { currentUser } = useAuthStore();
+  const { currentUser, isDemo } = useAuthStore();
 
   // Audit Diff Modal State
   const [selectedAuditLog, setSelectedAuditLog] = useState<AuditLog | null>(null);
@@ -94,6 +100,40 @@ export const AdminWorkspace: React.FC = () => {
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState<string>('all');
   const [userStatusFilter, setUserStatusFilter] = useState<string>('all');
+  const [accountActionBusy, setAccountActionBusy] = useState(false);
+  const [accountDialog, setAccountDialog] = useState<{ account: AdminAccount | null } | null>(null);
+  const [accounts, setAccounts] = useState<AccountList | null>(null);
+  const [accountsError, setAccountsError] = useState('');
+  const [accountPage, setAccountPage] = useState(1);
+  const [accountsRevision, setAccountsRevision] = useState(0);
+
+  useEffect(() => {
+    if (isDemo || currentWorkspaceNav !== 'user_management') return;
+
+    const request = new AbortController();
+    setAccounts(null);
+    setAccountsError('');
+    const timer = window.setTimeout(() => {
+      const roles: Record<string, string> = { admin: 'Admin', doctor: 'Doctor', receptionist: 'Receptionist', patient: 'Patient' };
+      const isActive = userStatusFilter === 'all' ? undefined : userStatusFilter === 'ACTIVE';
+      listAdminAccounts({
+        search: userSearchQuery.trim(),
+        role: roles[userRoleFilter],
+        isActive,
+        page: accountPage,
+      }, request.signal).then(result => {
+        if (!request.signal.aborted) setAccounts(result);
+      }).catch(error => {
+        if (!request.signal.aborted) setAccountsError(authErrorMessage(error));
+      });
+    }, 200);
+
+    return () => {
+      window.clearTimeout(timer);
+      request.abort();
+    };
+  }, [currentWorkspaceNav, isDemo, currentUser.id, userSearchQuery, userRoleFilter, userStatusFilter, accountPage, accountsRevision]);
+
 
   // Modal: Role Change / Permissions Granting
   const [selectedUserForRole, setSelectedUserForRole] = useState<HospitalUser | null>(null);
@@ -151,6 +191,28 @@ export const AdminWorkspace: React.FC = () => {
   };
 
   // User Handlers
+  async function changeAccountAccess(id: string, email: string, action: 'lock' | 'unlock' | 'delete') {
+    if (accountActionBusy) return;
+    const label = { lock: 'Khóa', unlock: 'Mở khóa', delete: 'Xóa' }[action];
+    if (!window.confirm(label + ' tài khoản ' + email + '?')) return;
+    setAccountActionBusy(true);
+    try {
+      if (action === 'delete') await deleteAdminAccount(id);
+      else await setAdminAccountStatus(id, action === 'unlock');
+      showToast('Đã ' + label.toLowerCase() + ' tài khoản.', 'success');
+      setAccountsRevision(value => value + 1);
+    } catch (error) {
+      showToast(authErrorMessage(error), 'error');
+    } finally {
+      setAccountActionBusy(false);
+    }
+  }
+
+  const blockPreviewWrite = () => {
+    if (isDemo) return false;
+    return true;
+  };
+
   const handleOpenRoleModal = (u: HospitalUser) => {
     setSelectedUserForRole(u);
     setTempNewRole(u.role);
@@ -159,6 +221,7 @@ export const AdminWorkspace: React.FC = () => {
 
   const handleSaveRole = (e: React.FormEvent) => {
     e.preventDefault();
+    if (blockPreviewWrite()) return;
     if (!selectedUserForRole) return;
     updateUserRole(selectedUserForRole.id, tempNewRole, tempDepartment, currentUser.fullName);
     showToast(`Đã cập nhật quyền thành công cho người dùng "${selectedUserForRole.fullName}"!`, 'success');
@@ -167,6 +230,7 @@ export const AdminWorkspace: React.FC = () => {
 
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
+    if (blockPreviewWrite()) return;
     if (!newUserName.trim() || !newUserEmail.trim()) {
       showToast('Vui lòng nhập họ tên và email', 'error');
       return;
@@ -221,6 +285,7 @@ export const AdminWorkspace: React.FC = () => {
 
   const handleSaveArticle = (e: React.FormEvent) => {
     e.preventDefault();
+    if (blockPreviewWrite()) return;
     if (!articleTitle.trim() || !articleSummary.trim()) {
       showToast('Vui lòng nhập tiêu đề và tóm tắt bài viết', 'error');
       return;
@@ -263,7 +328,7 @@ export const AdminWorkspace: React.FC = () => {
   };
 
   // User Filter Logic
-  const filteredUsers = users.filter((u) => {
+  const filteredDemoUsers = demoUsers.filter((u) => {
     const q = userSearchQuery.toLowerCase();
     const matchSearch =
       !userSearchQuery ||
@@ -281,6 +346,27 @@ export const AdminWorkspace: React.FC = () => {
 
     return matchSearch && matchRole && matchStatus;
   });
+
+  const accountRows = isDemo ? filteredDemoUsers : (accounts?.items ?? []).map(account => ({
+    id: account.id,
+    fullName: account.fullName?.trim() || account.email,
+    email: account.email,
+    phone: account.phoneNumber,
+    role: accountRole(account) ?? account.role,
+    department: account.specialtyName,
+    status: account.isActive ? 'ACTIVE' : 'LOCKED',
+    avatarUrl: account.avatarUrl,
+    idCardNumber: undefined,
+    lastLogin: undefined,
+  }));
+
+  const accountSummary = isDemo ? {
+    total: demoUsers.length,
+    doctors: demoUsers.filter(u => ['doctor', 'doctor_primary', 'doctor_imaging'].includes(u.role)).length,
+    receptionists: demoUsers.filter(u => u.role === 'receptionist').length,
+    patients: demoUsers.filter(u => u.role === 'patient').length,
+    locked: demoUsers.filter(u => u.status === 'LOCKED').length,
+  } : accounts?.summary;
 
   // News Filter Logic
   const filteredArticles = articles.filter((a) => {
@@ -302,10 +388,12 @@ export const AdminWorkspace: React.FC = () => {
     return matchSearch && matchCat && matchStatus;
   });
 
-  const getRoleBadge = (role: UserRole) => {
+  const getRoleBadge = (role: string) => {
     switch (role) {
       case 'admin':
         return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">Quản trị viên (Admin)</span>;
+      case 'doctor':
+        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-[#005a8b] border border-blue-200">Bác sĩ</span>;
       case 'doctor_primary':
         return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-[#005a8b] border border-blue-200">Bác sĩ Khám chính</span>;
       case 'doctor_imaging':
@@ -324,6 +412,7 @@ export const AdminWorkspace: React.FC = () => {
   // Handle Add Doc
   const handleCreateRagDoc = (e: React.FormEvent) => {
     e.preventDefault();
+    if (blockPreviewWrite()) return;
     if (!newDocTitle.trim()) return;
 
     addRagDoc({
@@ -557,12 +646,12 @@ export const AdminWorkspace: React.FC = () => {
                 Quản lý Tài khoản & Phân quyền Hệ thống HIS
               </h2>
               <p className="text-xs text-slate-500">
-                Xem danh sách tài khoản người dùng, cấp quyền vai trò (RBAC), kích hoạt hoặc khóa tài khoản toàn bệnh viện.
+                {isDemo ? 'Xem và quản lý tài khoản minh họa.' : 'Xem danh sách tài khoản, vai trò và trạng thái truy cập.'}
               </p>
             </div>
 
             <button
-              onClick={() => setShowAddUserModal(true)}
+              onClick={() => isDemo ? setShowAddUserModal(true) : setAccountDialog({ account: null })}
               className="inline-flex items-center gap-2 px-4 py-2 bg-[#0084c7] hover:bg-[#0072bc] text-white rounded-xl font-bold text-xs shadow-xs transition"
             >
               <UserPlus className="w-4 h-4" />
@@ -574,34 +663,34 @@ export const AdminWorkspace: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
               <span className="text-[10px] uppercase font-bold text-slate-400">Tổng tài khoản</span>
-              <div className="text-xl font-black text-slate-900 mt-1">{users.length}</div>
+              <div className="text-xl font-black text-slate-900 mt-1">{accountSummary?.total ?? '—'}</div>
               <span className="text-[10px] text-slate-500">Tất cả vai trò</span>
             </div>
             <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
               <span className="text-[10px] uppercase font-bold text-blue-600">Bác sĩ & Lâm sàng</span>
               <div className="text-xl font-black text-[#005a8b] mt-1">
-                {users.filter(u => u.role === 'doctor_primary' || u.role === 'doctor_imaging').length}
+                {accountSummary?.doctors ?? '—'}
               </div>
               <span className="text-[10px] text-slate-500">Khám chính & CĐHA</span>
             </div>
             <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
               <span className="text-[10px] uppercase font-bold text-cyan-600">Lễ tân Tiếp đón</span>
               <div className="text-xl font-black text-cyan-800 mt-1">
-                {users.filter(u => u.role === 'receptionist').length}
+                {accountSummary?.receptionists ?? '—'}
               </div>
               <span className="text-[10px] text-slate-500">Quầy hành chính</span>
             </div>
             <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
               <span className="text-[10px] uppercase font-bold text-emerald-600">Bệnh nhân</span>
               <div className="text-xl font-black text-emerald-800 mt-1">
-                {users.filter(u => u.role === 'patient').length}
+                {accountSummary?.patients ?? '—'}
               </div>
               <span className="text-[10px] text-slate-500">Đã đăng ký cổng</span>
             </div>
             <div className="p-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
               <span className="text-[10px] uppercase font-bold text-rose-600">Đang bị khóa</span>
               <div className="text-xl font-black text-rose-700 mt-1">
-                {users.filter(u => u.status === 'LOCKED').length}
+                {accountSummary?.locked ?? '—'}
               </div>
               <span className="text-[10px] text-slate-500">Tạm dừng truy cập</span>
             </div>
@@ -612,7 +701,7 @@ export const AdminWorkspace: React.FC = () => {
             <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  Danh sách Tài khoản ({filteredUsers.length} / {users.length})
+                  Danh sách Tài khoản ({(isDemo ? filteredDemoUsers.length : accounts?.filteredTotal) ?? '—'} / {accountSummary?.total ?? '—'})
                 </span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] bg-blue-50 text-[#005a8b] font-bold">
                   HIS RBAC Engine
@@ -626,15 +715,16 @@ export const AdminWorkspace: React.FC = () => {
                   <input
                     type="text"
                     value={userSearchQuery}
-                    onChange={(e) => setUserSearchQuery(e.target.value)}
-                    placeholder="Tìm tên, email, SĐT, CCCD..."
+                    onChange={(e) => { setAccountPage(1); setUserSearchQuery(e.target.value); }}
+                    maxLength={255}
+                    placeholder={isDemo ? 'Tìm tên, email, SĐT, CCCD…' : 'Tìm tên, email, SĐT…'}
                     className="pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0084c7] focus:outline-none w-52"
                   />
                 </div>
 
                 <select
                   value={userRoleFilter}
-                  onChange={(e) => setUserRoleFilter(e.target.value)}
+                  onChange={(e) => { setAccountPage(1); setUserRoleFilter(e.target.value); }}
                   className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-none"
                 >
                   <option value="all">Tất cả vai trò</option>
@@ -642,12 +732,12 @@ export const AdminWorkspace: React.FC = () => {
                   <option value="doctor">Tất cả Bác sĩ</option>
                   <option value="receptionist">Lễ tân tiếp đón</option>
                   <option value="patient">Bệnh nhân</option>
-                  <option value="guest">Khách vãng lai</option>
+                  {isDemo && <option value="guest">Khách vãng lai</option>}
                 </select>
 
                 <select
                   value={userStatusFilter}
-                  onChange={(e) => setUserStatusFilter(e.target.value)}
+                  onChange={(e) => { setAccountPage(1); setUserStatusFilter(e.target.value); }}
                   className="px-2.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl font-medium focus:outline-none"
                 >
                   <option value="all">Tất cả trạng thái</option>
@@ -657,6 +747,13 @@ export const AdminWorkspace: React.FC = () => {
               </div>
             </div>
 
+            {!isDemo && !accounts && <div className="px-4 py-3 text-sm">
+              {accountsError ? <div role="alert" className="flex flex-wrap items-center gap-3 text-rose-700">
+                <span>Không tải được danh sách. {accountsError}</span>
+                <button type="button" className="font-semibold underline" onClick={() => setAccountsRevision(value => value + 1)}>Thử lại</button>
+              </div> : <p role="status">Đang tải danh sách tài khoản…</p>}
+            </div>}
+            {(isDemo || accounts) && accountRows.length === 0 && <p className="px-4 py-3 text-sm text-slate-600">Không tìm thấy tài khoản.</p>}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
@@ -671,15 +768,11 @@ export const AdminWorkspace: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredUsers.map((u) => (
+                  {accountRows.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-50/80 transition">
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          <img
-                            src={u.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'}
-                            alt={u.fullName}
-                            className="w-9 h-9 rounded-xl object-cover border border-slate-200"
-                          />
+                          <AccountAvatar src={u.avatarUrl} className="size-9 rounded-xl" />
                           <div>
                             <div className="font-bold text-slate-900">{u.fullName}</div>
                             <div className="text-[10px] font-mono text-slate-400">ID: {u.id}</div>
@@ -718,10 +811,29 @@ export const AdminWorkspace: React.FC = () => {
                       </td>
 
                       <td className="py-3 px-4 text-slate-500 text-[11px] whitespace-nowrap">
-                        {u.lastLogin}
+                        {u.lastLogin || '—'}
                       </td>
 
-                      <td className="py-3 px-4 text-right">
+                      {!isDemo && <td className="py-3 px-4 text-right">
+                        {u.role !== 'admin' && <div className="inline-flex items-center gap-1.5"><button type="button" onClick={() => {
+                          const account = accounts?.items.find(item => item.id === u.id);
+                          if (account) setAccountDialog({ account });
+                        }} className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 font-bold text-[#005a8b]">
+                          <Key className="size-3.5" /> Cấp quyền
+                        </button>
+                        <button type="button" disabled={accountActionBusy} title={u.status === 'ACTIVE' ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}
+                          aria-label={u.status === 'ACTIVE' ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}
+                          className="rounded-lg border border-slate-200 bg-slate-50 p-1.5 text-slate-600 hover:text-rose-700 disabled:opacity-50"
+                          onClick={() => void changeAccountAccess(u.id, u.email, u.status === 'ACTIVE' ? 'lock' : 'unlock')}>
+                          {u.status === 'ACTIVE' ? <Lock className="size-3.5" /> : <Unlock className="size-3.5" />}
+                        </button>
+                        <button type="button" disabled={accountActionBusy} title="Xóa tài khoản" aria-label="Xóa tài khoản"
+                          className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:text-rose-700 disabled:opacity-50"
+                          onClick={() => void changeAccountAccess(u.id, u.email, 'delete')}>
+                          <Trash2 className="size-3.5" />
+                        </button></div>}
+                      </td>}
+                      {isDemo && 'createdAt' in u && <td className="py-3 px-4 text-right">
                         <div className="inline-flex items-center gap-1.5">
                           <button
                             onClick={() => handleOpenRoleModal(u)}
@@ -733,7 +845,7 @@ export const AdminWorkspace: React.FC = () => {
                           </button>
 
                           <button
-                            onClick={() => toggleUserStatus(u.id, currentUser.fullName)}
+                            onClick={() => !blockPreviewWrite() && toggleUserStatus(u.id, currentUser.fullName)}
                             title={u.status === 'ACTIVE' ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}
                             className={`p-1.5 rounded-lg border transition ${
                               u.status === 'ACTIVE'
@@ -747,7 +859,7 @@ export const AdminWorkspace: React.FC = () => {
                           {u.role !== 'admin' && (
                             <button
                               onClick={() => {
-                                if (confirm(`Bạn có chắc muốn xóa tài khoản "${u.fullName}" khỏi hệ thống?`)) {
+                                if (!blockPreviewWrite() && confirm(`Bạn có chắc muốn xóa tài khoản "${u.fullName}" khỏi hệ thống?`)) {
                                   deleteUser(u.id, currentUser.fullName);
                                 }
                               }}
@@ -758,12 +870,21 @@ export const AdminWorkspace: React.FC = () => {
                             </button>
                           )}
                         </div>
-                      </td>
+                      </td>}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            {!isDemo && accounts && (accountPage > 1 || accounts.hasMore) && (
+              <div className="flex items-center justify-end gap-3 border-t border-slate-100 px-4 py-3 text-xs">
+                <button type="button" disabled={accountPage <= 1} onClick={() => setAccountPage(page => page - 1)}
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-40">Trang trước</button>
+                <span>Trang {accountPage}</span>
+                <button type="button" disabled={!accounts.hasMore} onClick={() => setAccountPage(page => page + 1)}
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-40">Trang sau</button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -771,7 +892,15 @@ export const AdminWorkspace: React.FC = () => {
       {/* =========================================================================
           TAB: NEWS & ARTICLES MANAGEMENT (QUẢN LÝ TIN TỨC & BÀI BÁO TRANG CHỦ)
       ========================================================================= */}
-      {currentWorkspaceNav === 'news_management' && (
+      {!isDemo && currentWorkspaceNav === 'user_management' && accountDialog &&
+        <AccountManagementDialog account={accountDialog.account} onClose={() => setAccountDialog(null)}
+          onSaved={() => {
+            showToast(accountDialog.account ? 'Đã cập nhật quyền tài khoản.' : 'Đã tạo tài khoản.', 'success');
+            setAccountDialog(null);
+            setAccountsRevision(value => value + 1);
+          }} />}
+      {currentWorkspaceNav === 'news_management' && !isDemo && <AdminArticlesPage />}
+      {currentWorkspaceNav === 'news_management' && isDemo && (
         <div className="space-y-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -926,7 +1055,7 @@ export const AdminWorkspace: React.FC = () => {
 
                       <td className="py-3 px-4 text-center">
                         <button
-                          onClick={() => togglePublishArticle(art.id, currentUser.fullName)}
+                          onClick={() => !blockPreviewWrite() && togglePublishArticle(art.id, currentUser.fullName)}
                           className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold transition ${
                             art.isPublished
                               ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
@@ -940,7 +1069,7 @@ export const AdminWorkspace: React.FC = () => {
 
                       <td className="py-3 px-4 text-center">
                         <button
-                          onClick={() => toggleFeatureArticle(art.id, currentUser.fullName)}
+                          onClick={() => !blockPreviewWrite() && toggleFeatureArticle(art.id, currentUser.fullName)}
                           className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold transition ${
                             art.isFeaturedOnHome
                               ? 'bg-blue-100 text-[#005a8b] border border-blue-300'
@@ -972,7 +1101,7 @@ export const AdminWorkspace: React.FC = () => {
 
                           <button
                             onClick={() => {
-                              if (confirm(`Bạn có chắc muốn xóa bài viết "${art.title}"?`)) {
+                              if (!blockPreviewWrite() && confirm(`Bạn có chắc muốn xóa bài viết "${art.title}"?`)) {
                                 deleteArticle(art.id, currentUser.fullName);
                               }
                             }}
@@ -1130,7 +1259,7 @@ export const AdminWorkspace: React.FC = () => {
 
                         <td className="py-3.5 px-3 text-center">
                           <button
-                            onClick={() => toggleRagDocActive(doc.id, currentUser.fullName)}
+                            onClick={() => !blockPreviewWrite() && toggleRagDocActive(doc.id, currentUser.fullName)}
                             className="text-slate-400 hover:text-[#0084c7] transition"
                             title={doc.isActive ? 'Tắt tài liệu này khỏi AI' : 'Bật tài liệu này cho AI'}
                           >
@@ -1144,7 +1273,7 @@ export const AdminWorkspace: React.FC = () => {
 
                         <td className="py-3.5 px-4 text-right">
                           <button
-                            onClick={() => approveAndIndexRagDoc(doc.id, currentUser.fullName)}
+                            onClick={() => !blockPreviewWrite() && approveAndIndexRagDoc(doc.id, currentUser.fullName)}
                             className="px-2.5 py-1 bg-white hover:bg-blue-50 text-[#005a8b] border border-blue-300 rounded-lg font-bold text-[11px] shadow-2xs transition"
                           >
                             Duyệt & Đồng bộ
@@ -1282,7 +1411,7 @@ export const AdminWorkspace: React.FC = () => {
                         <div className="flex items-center gap-1.5">
                           <button
                             type="button"
-                            onClick={() => updateTimeSlotCapacity(slot.id, Math.max(slot.bookedCount, slot.maxCapacity - 1))}
+                            onClick={() => !blockPreviewWrite() && updateTimeSlotCapacity(slot.id, Math.max(slot.bookedCount, slot.maxCapacity - 1))}
                             className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center transition"
                             title="Giảm sức chứa"
                           >
@@ -1293,7 +1422,7 @@ export const AdminWorkspace: React.FC = () => {
                           </span>
                           <button
                             type="button"
-                            onClick={() => updateTimeSlotCapacity(slot.id, slot.maxCapacity + 1)}
+                            onClick={() => !blockPreviewWrite() && updateTimeSlotCapacity(slot.id, slot.maxCapacity + 1)}
                             className="w-7 h-7 rounded-lg bg-blue-100 hover:bg-blue-200 text-[#005a8b] font-bold flex items-center justify-center transition"
                             title="Tăng thêm suất khám"
                           >
@@ -1775,11 +1904,7 @@ export const AdminWorkspace: React.FC = () => {
             <form onSubmit={handleSaveRole} className="p-6 space-y-4 text-xs">
               {/* Selected User Header */}
               <div className="p-3 bg-blue-50/70 rounded-xl border border-blue-100 flex items-center gap-3">
-                <img
-                  src={selectedUserForRole.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'}
-                  alt={selectedUserForRole.fullName}
-                  className="w-11 h-11 rounded-xl object-cover border border-blue-200"
-                />
+                <AccountAvatar src={selectedUserForRole.avatarUrl} className="size-11 rounded-xl" />
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-slate-900 text-sm truncate">{selectedUserForRole.fullName}</div>
                   <div className="text-[11px] text-slate-500">{selectedUserForRole.email} • {selectedUserForRole.phone}</div>
@@ -2011,9 +2136,6 @@ export const AdminWorkspace: React.FC = () => {
                 />
               </div>
 
-              <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 text-[11px] text-[#005a8b]">
-                Tài khoản sẽ được tạo ở trạng thái <strong>Hoạt động (Active)</strong> và tự động ghi log vào Nhật ký Kiểm toán Audit Logs theo quy định y tế.
-              </div>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
@@ -2038,7 +2160,7 @@ export const AdminWorkspace: React.FC = () => {
       {/* =========================================================================
           MODAL: THÊM / CHỈNH SỬA BÀI VIẾT TIN TỨC BỆNH VIỆN
       ========================================================================= */}
-      {showArticleModal && (
+      {isDemo && showArticleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 max-h-[90vh] flex flex-col">
             <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
@@ -2229,7 +2351,7 @@ export const AdminWorkspace: React.FC = () => {
       {/* =========================================================================
           MODAL: XEM TRƯỚC BÀI VIẾT (PUBLIC PORTAL PREVIEW)
       ========================================================================= */}
-      {previewArticle && (
+      {isDemo && previewArticle && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 max-h-[85vh] flex flex-col">
             <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">

@@ -12,6 +12,9 @@ public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
     {
     }
 
+    public DbSet<Article> Articles => Set<Article>();
+    public DbSet<ArticleCategory> ArticleCategories => Set<ArticleCategory>();
+
     public virtual DbSet<Appointment> Appointments { get; set; }
 
     public virtual DbSet<DoctorProfile> DoctorProfiles { get; set; }
@@ -120,6 +123,8 @@ public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             entity.HasKey(e => e.UserId).HasName("PK__PatientP__1788CC4C39C464B1");
 
             entity.Property(e => e.UserId).ValueGeneratedNever();
+            entity.Property(e => e.HeightCm).HasPrecision(6, 2);
+            entity.Property(e => e.WeightKg).HasPrecision(6, 2);
             entity.Property(e => e.Address).HasMaxLength(500);
             entity.Property(e => e.AvatarUrl).HasMaxLength(500);
             entity.Property(e => e.BloodType).HasMaxLength(10);
@@ -158,6 +163,7 @@ public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
 
         modelBuilder.Entity<Specialty>(entity =>
         {
+            entity.Property(e => e.WorkspaceType).HasMaxLength(30);
             entity.HasKey(e => e.Id).HasName("PK__Specialt__3214EC0795810B99");
 
             entity.Property(e => e.Name).HasMaxLength(255);
@@ -191,8 +197,28 @@ public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             entity.Property(e => e.DeviceToken).HasMaxLength(255);
             entity.Property(e => e.Email).HasMaxLength(255);
             entity.Property(e => e.PhoneNumber).HasMaxLength(20);
+            entity.Property(e => e.FullName).HasMaxLength(100);
+            entity.Property(e => e.Department).HasMaxLength(150);
+            entity.Property(e => e.IdentityNumber).HasMaxLength(12);
             entity.Property(e => e.Role).HasMaxLength(50);
         });
+
+        modelBuilder.Entity<ArticleCategory>(entity => entity.ToTable("ArticleCategories", "dbo"));
+        modelBuilder.Entity<ArticleMedia>(entity =>
+        {
+            entity.ToTable("MediaAssets", "dbo");
+            entity.Property(e => e.ContentType).IsUnicode(false).HasMaxLength(100);
+        });
+        modelBuilder.Entity<Article>(entity =>
+        {
+            entity.ToTable("Articles", "dbo");
+            entity.Property(e => e.Slug).IsUnicode(false).HasMaxLength(350);
+            entity.Property(e => e.Status).IsUnicode(false).HasMaxLength(20);
+            entity.Property(e => e.RowVersion).IsRowVersion();
+            entity.HasOne(e => e.Category).WithMany().HasForeignKey(e => e.CategoryId);
+            entity.HasOne(e => e.CoverMedia).WithMany().HasForeignKey(e => e.CoverMediaId);
+        });
+        modelBuilder.Entity<User>().Property(e => e.SessionVersion).IsConcurrencyToken();
 
         OnModelCreatingPartial(modelBuilder);
     }

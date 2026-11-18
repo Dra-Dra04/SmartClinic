@@ -13,9 +13,11 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options, TimeProvider c
         var settings = options.Value;
         var now = clock.GetUtcNow().UtcDateTime;
         var expires = now.AddMinutes(settings.AccessTokenMinutes);
-        var token = new JwtSecurityToken(settings.Issuer, settings.Audience,
-            [new Claim("sub", user.Id.ToString()), new Claim("email", user.Email),
-             new Claim("role", user.Role), new Claim("jti", Guid.NewGuid().ToString())],
+        List<Claim> claims = [new("sub", user.Id.ToString()), new("email", user.Email),
+            new("role", user.Role), new("jti", Guid.NewGuid().ToString())];
+        if (user.SessionVersion is Guid version)
+            claims.Add(new("session_version", version.ToString()));
+        var token = new JwtSecurityToken(settings.Issuer, settings.Audience, claims,
             now, expires, new SigningCredentials(
                 new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.SigningKey)),
                 SecurityAlgorithms.HmacSha256));

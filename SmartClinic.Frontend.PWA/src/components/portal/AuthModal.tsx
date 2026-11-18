@@ -10,36 +10,45 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMessage }) => {
-  const { loginUser, registerUser } = useAuthStore();
+  const { loginUser, registerUser, isLoading, error, clearError, isDemo } = useAuthStore();
   const { setPortalNav } = useClinicStore();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [emailOrPhone, setEmailOrPhone] = useState('0912888999');
-  const [password, setPassword] = useState('123456');
+  const [emailOrPhone, setEmailOrPhone] = useState('');
+  const [password, setPassword] = useState('');
 
   // Register state
   const [regEmail, setRegEmail] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regPass, setRegPass] = useState('');
 
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [message, setMessage] = useState('');
+
   if (!isOpen) return null;
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    loginUser(emailOrPhone);
-    onClose();
+    if (isLoading || isDemo) return;
+    clearError(); setMessage('');
+    try {
+      await loginUser(emailOrPhone, password);
+      const { activeRole, profile, profileError } = useAuthStore.getState();
+      const needsProfile = activeRole === 'patient' && !profileError && profile?.isProfileCompleted === false;
+      setPassword(''); onClose();
+      setPortalNav(needsProfile ? 'profile' : 'home');
+    } catch { /* Keep form open; API error is displayed. */ }
   };
-
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regPhone || !regPass) {
-      alert('Vui lòng nhập số điện thoại và mật khẩu');
-      return;
-    }
-    // Requirement: On registering, isProfileCompleted is false, routes immediately to Onboarding Profile (Màn hình 2.1)
-    registerUser(regEmail || 'benhnhan@gmail.com', regPhone);
-    onClose();
-    setPortalNav('profile');
+    if (isLoading || isDemo) return;
+    clearError(); setMessage('');
+    if (regPass !== confirmPassword) { setMessage('Mật khẩu xác nhận không khớp.'); return; }
+    try {
+      await registerUser({ email: regEmail, phoneNumber: regPhone, password: regPass, confirmPassword });
+      setEmailOrPhone(regEmail); setRegPass(''); setConfirmPassword(''); setPassword('');
+      setMode('login'); setMessage('Đăng ký thành công. Vui lòng đăng nhập.');
+    } catch { /* Keep registration values so the user can correct errors. */ }
   };
 
   return (
@@ -56,7 +65,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMes
               Hệ thống Quản lý Phòng khám Đa khoa SmartClinic
             </p>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-slate-600">
+          <button disabled={isLoading} onClick={() => { setPassword(''); setRegPass(''); setConfirmPassword(''); clearError(); onClose(); }} className="p-1 rounded-lg text-slate-400 hover:text-slate-600">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -75,7 +84,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMes
         <div className="flex p-1 bg-slate-100 rounded-xl mb-6">
           <button
             type="button"
-            onClick={() => setMode('login')}
+            disabled={isLoading || isDemo}
+            onClick={() => { setMode('login'); clearError(); setMessage(''); }}
             className={`flex-1 py-2 rounded-lg font-bold transition text-xs ${
               mode === 'login' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-slate-600'
             }`}
@@ -84,7 +94,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMes
           </button>
           <button
             type="button"
-            onClick={() => setMode('register')}
+            disabled={isLoading || isDemo}
+            onClick={() => { setMode('register'); clearError(); setMessage(''); }}
             className={`flex-1 py-2 rounded-lg font-bold transition text-xs ${
               mode === 'register' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-slate-600'
             }`}
@@ -93,17 +104,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMes
           </button>
         </div>
 
+        {isDemo && <p role="status">Đang ở chế độ demo. Quay về chế độ thật để đăng ký hoặc đăng nhập.</p>}
+        {error && <p role="alert" className="text-red-700 mb-3">{error}</p>}
+        {message && <p role="status" className="mb-3">{message}</p>}
+        {isLoading && <p role="status">Đang xử lý…</p>}
         {/* LOGIN FORM */}
         {mode === 'login' ? (
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Email hoặc Số điện thoại *</label>
+              <label className="block font-bold text-slate-700 mb-1">Email *</label>
               <input
-                type="text"
+                type="email"
                 required
+                maxLength={255}
                 value={emailOrPhone}
                 onChange={(e) => setEmailOrPhone(e.target.value)}
-                placeholder="VD: 0912888999"
+                placeholder="Email đăng nhập"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
               />
             </div>
@@ -121,6 +137,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMes
 
             <button
               type="submit"
+              disabled={isLoading || isDemo}
               className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95 flex items-center justify-center gap-2"
             >
               <span>Đăng nhập vào Hệ thống</span>
@@ -143,9 +160,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMes
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">Địa chỉ Email (Tùy chọn)</label>
+              <label className="block font-bold text-slate-700 mb-1">Địa chỉ Email *</label>
               <input
                 type="email"
+                required
+                maxLength={255}
                 value={regEmail}
                 onChange={(e) => setRegEmail(e.target.value)}
                 placeholder="ngan.hk@gmail.com"
@@ -160,20 +179,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMes
                 required
                 value={regPass}
                 onChange={(e) => setRegPass(e.target.value)}
-                placeholder="Ít nhất 6 ký tự"
+                minLength={10}
+                maxLength={128}
+                placeholder="Từ 10 đến 128 ký tự"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
               />
             </div>
 
+            <label className="block font-bold text-slate-700">Xác nhận mật khẩu *
+              <input className="block w-full border rounded-xl p-3" type="password" required minLength={10} maxLength={128} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+            </label>
             <p className="text-[11px] text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
-              📌 <strong>Lưu ý:</strong> Sau khi đăng ký, bạn sẽ được tự động chuyển đến trang Hoàn tất Hồ sơ cá nhân (CCCD/BHYT) theo quy định y tế.
+              📌 <strong>Lưu ý:</strong> Đăng ký thành công sẽ quay về form đăng nhập. Sau khi đăng nhập, bạn có thể cập nhật hồ sơ cá nhân.
             </p>
 
             <button
               type="submit"
+              disabled={isLoading || isDemo}
               className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95 flex items-center justify-center gap-2"
             >
-              <span>Đăng ký & Chuyển sang Cập nhật Hồ sơ</span>
+              <span>Đăng ký tài khoản</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>

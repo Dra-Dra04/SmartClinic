@@ -1,3 +1,4 @@
+import { blockPreviewWrite } from '../../services/previewMode';
 import React, { useState } from 'react';
 import { useClinicStore } from '../../store/useClinicStore';
 import { SPECIALTIES_DATA, DOCTORS_DATA } from '../../services/mockData';
@@ -8,7 +9,6 @@ import {
   Search, 
   CheckCircle2, 
   XCircle, 
-  EyeOff, 
   Bell, 
   UserX, 
   ArrowRight,
@@ -51,12 +51,14 @@ export const ReceptionistDesk: React.FC = () => {
   });
 
   const handleCheckIn = (apptId: string) => {
+    if (blockPreviewWrite()) return;
     const v = checkInAppointment(apptId);
     alert(`Tiếp đón thành công!\nBệnh nhân: ${v.patientName}\nCấp STT: ${v.visitCode}\nPhòng khám: ${v.roomNumber}`);
   };
 
   const handleWalkInSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (blockPreviewWrite()) return;
     if (!walkInName.trim() || !walkInPhone.trim()) {
       alert('Vui lòng nhập tên và số điện thoại');
       return;
@@ -71,19 +73,6 @@ export const ReceptionistDesk: React.FC = () => {
   return (
     <div className="space-y-6 text-xs animate-in fade-in">
       
-      {/* Privacy & Data Masking Badge Bar */}
-      <div className="p-3 bg-blue-50 border border-blue-200 rounded-2xl flex items-center justify-between text-[#005a8b] font-medium">
-        <div className="flex items-center gap-2">
-          <EyeOff className="w-4 h-4 text-[#0084c7] flex-shrink-0" />
-          <span>
-            <strong>Chế độ Bảo vệ Dữ liệu Bệnh án (Data Masking):</strong> Giao diện Lễ tân chỉ hiển thị thông tin tiếp đón hành chính, thời gian và số thứ tự phòng khám. Toàn bộ chẩn đoán chi tiết và đơn thuốc được bảo mật theo quy định HIS.
-          </span>
-        </div>
-        <span className="hidden md:inline-block px-2.5 py-1 bg-white border border-blue-300 rounded-lg text-[10px] font-bold text-[#005a8b]">
-          HIS Role: Receptionist
-        </span>
-      </div>
-
       {/* =========================================================================
           MÀN HÌNH 4.1: QUẢN LÝ & DUYỆT LỊCH HẸN (Appointments Desk)
          ========================================================================= */}
@@ -200,7 +189,7 @@ export const ReceptionistDesk: React.FC = () => {
                     <td className="p-3 text-right space-x-1.5">
                       {appt.status === 'PENDING_CONFIRMATION' && (
                         <button
-                          onClick={() => confirmAppointment(appt.id)}
+                          onClick={() => !blockPreviewWrite() && confirmAppointment(appt.id)}
                           className="px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg font-bold"
                         >
                           Xác nhận
@@ -218,7 +207,7 @@ export const ReceptionistDesk: React.FC = () => {
 
                       {appt.status !== 'ARRIVED' && appt.status !== 'CANCELLED' && (
                         <button
-                          onClick={() => cancelAppointment(appt.id)}
+                          onClick={() => !blockPreviewWrite() && cancelAppointment(appt.id)}
                           className="px-2 py-1 text-red-500 hover:bg-red-50 rounded-lg"
                         >
                           Hủy
@@ -405,14 +394,14 @@ export const ReceptionistDesk: React.FC = () => {
 
                     <div className="flex items-center gap-1">
                       <button
-                        onClick={() => callNextPatient(v.id)}
+                        onClick={() => !blockPreviewWrite() && callNextPatient(v.id)}
                         title="Gọi vào phòng"
                         className="p-1.5 bg-[#0084c7] hover:bg-[#0072bc] text-white rounded-lg"
                       >
                         <Bell className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => togglePatientAbsent(v.id)}
+                        onClick={() => !blockPreviewWrite() && togglePatientAbsent(v.id)}
                         title={v.isAbsent ? 'Bỏ vắng mặt' : 'Đánh dấu vắng mặt'}
                         className={`p-1.5 rounded-lg ${v.isAbsent ? 'bg-amber-100 text-amber-700' : 'bg-slate-200 text-slate-600'}`}
                       >

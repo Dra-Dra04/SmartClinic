@@ -1,3 +1,4 @@
+import { blockPreviewWrite } from '../../services/previewMode';
 import React, { useState } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useClinicStore } from '../../store/useClinicStore';
@@ -19,7 +20,7 @@ import {
 } from 'lucide-react';
 
 export const PatientVisitsPage: React.FC = () => {
-  const { currentUser } = useAuthStore();
+  const { currentUser, isDemo } = useAuthStore();
   const { 
     appointments, 
     visits, 
@@ -35,7 +36,7 @@ export const PatientVisitsPage: React.FC = () => {
 
   // Current active visit of today
   const activeVisit = visits[0]; // Patient Trần Văn An's active visit
-  const myAppts = appointments.filter((a) => a.patientId === currentUser.id || a.patientPhone === currentUser.phone);
+  const myAppts = appointments.filter((a) => (!isDemo && a.patientId === activeVisit?.patientId) || a.patientId === currentUser.id || a.patientPhone === currentUser.phone);
 
   const getStepNumber = (status: VisitStatus): number => {
     switch (status) {
@@ -311,7 +312,7 @@ export const PatientVisitsPage: React.FC = () => {
                       </button>
 
                       <button
-                        onClick={() => cancelAppointment(appt.id)}
+                        onClick={() => !blockPreviewWrite() && cancelAppointment(appt.id)}
                         className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-semibold border border-red-200 flex items-center gap-1"
                       >
                         <XCircle className="w-3.5 h-3.5" />
@@ -361,6 +362,7 @@ export const PatientVisitsPage: React.FC = () => {
                 </button>
                 <button
                   onClick={() => {
+                    if (blockPreviewWrite()) return;
                     changeAppointmentTime(rescheduleApptId, newDate, newSlot);
                     setRescheduleApptId(null);
                     alert('Đã cập nhật khung giờ mới cho lịch hẹn!');

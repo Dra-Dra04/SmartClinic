@@ -14,3 +14,5 @@ out/
 
 .vs/
 .vscode/
+
+SmartClinic.Backend/SmartClinic.API/article-uploads/

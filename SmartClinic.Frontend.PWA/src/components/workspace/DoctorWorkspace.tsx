@@ -1,3 +1,4 @@
+import { blockPreviewWrite } from '../../services/previewMode';
 import React, { useState } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useClinicStore } from '../../store/useClinicStore';
@@ -115,6 +116,7 @@ export const DoctorWorkspace: React.FC = () => {
 
   // Handlers for DOC-01
   const handleSaveVitals = () => {
+    if (blockPreviewWrite()) return;
     if (!selectedVisit) return;
     updateVitalSigns(
       selectedVisit.id,
@@ -125,6 +127,7 @@ export const DoctorWorkspace: React.FC = () => {
   };
 
   const handleSaveDiagnosis = () => {
+    if (blockPreviewWrite()) return;
     if (!selectedVisit) return;
     updateEmrDiagnosis(selectedVisit.id, prelimDiagnosis, icd10, conclusion, 'BS.CKII Nguyễn Minh Tuấn');
     alert('Đã lưu chẩn đoán và hướng xử trí EMR!');
@@ -132,6 +135,7 @@ export const DoctorWorkspace: React.FC = () => {
 
   const handleSendOrder = (e: React.FormEvent) => {
     e.preventDefault();
+    if (blockPreviewWrite()) return;
     if (!selectedVisit) return;
     const serv = CLINICAL_SERVICES_CATALOG.find(s => s.code === chosenServiceCode)!;
     createClinicalOrder(
@@ -149,6 +153,7 @@ export const DoctorWorkspace: React.FC = () => {
   };
 
   const handleCompletePrescription = () => {
+    if (blockPreviewWrite()) return;
     if (!selectedVisit) return;
     createPrescription(
       selectedVisit.id,
@@ -168,6 +173,7 @@ export const DoctorWorkspace: React.FC = () => {
   };
 
   const handleConfirmEditEmr = () => {
+    if (blockPreviewWrite()) return;
     if (!selectedVisit || !editEmrReason.trim()) {
       alert('Bắt buộc phải nhập Lý do chỉnh sửa để ghi vào Nhật ký Kiểm toán Audit Logs!');
       return;
@@ -744,6 +750,7 @@ export const DoctorWorkspace: React.FC = () => {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (blockPreviewWrite()) return;
                             acceptClinicalOrder(ord.id, 'DOC-02', 'TS.BS Lê Hoàng');
                             alert('Đã tiếp nhận thực hiện phiếu chỉ định!');
                           }}
@@ -812,6 +819,7 @@ export const DoctorWorkspace: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => {
+                    if (blockPreviewWrite()) return;
                     submitSubclinicalResult(
                       selectedImagingOrderId,
                       sampleXrayUrl,
@@ -1062,6 +1070,7 @@ export const DoctorWorkspace: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
+                  if (blockPreviewWrite()) return;
                   createDepartmentReferral(selectedVisit.id, refDept, refReason, 'CHUYEN_KHOA', 'DOC-01');
                   setShowReferralModal(false);
                   alert(`Đã lập phiếu chuyển khoa ${refDept} thành công!`);

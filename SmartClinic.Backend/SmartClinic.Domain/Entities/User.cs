@@ -14,6 +14,12 @@ public partial class User
 
     public string Role { get; set; } = null!;
 
+    public bool IsActive { get; set; } = true;
+    public string? FullName { get; set; }
+    public string? Department { get; set; }
+    public string? IdentityNumber { get; set; }
+    public DateTime? DeletedAtUtc { get; set; }
+    public Guid? SessionVersion { get; set; }
     public string? DeviceToken { get; set; }
 
     public virtual DoctorProfile? DoctorProfile { get; set; }

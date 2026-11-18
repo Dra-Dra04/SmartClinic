@@ -1,9 +1,10 @@
+import { AUTH_EXPIRED_EVENT } from './services/axiosClient';
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from './store/useAuthStore';
 import { useClinicStore } from './store/useClinicStore';
 import { DemoRoleSwitcherBar } from './components/layout/DemoRoleSwitcherBar';
@@ -26,7 +27,13 @@ import { SPECIALTIES_DATA } from './services/mockData';
 import { Doctor, Specialty } from './types';
 
 export default function App() {
-  const { activeRole } = useAuthStore();
+  const { activeRole, isDemo, isInitializing, initializeAuth, logout, enterDemo, exitDemo, isLoading, profileLoading, error } = useAuthStore();
+  useEffect(() => {
+    void initializeAuth();
+    const expired = () => { logout(); useAuthStore.setState({ error: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' }); };
+    window.addEventListener(AUTH_EXPIRED_EVENT, expired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, expired);
+  }, [initializeAuth, logout]);
   const { currentPortalNav, setPortalNav } = useClinicStore();
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -52,10 +59,16 @@ export default function App() {
 
   const isPortalMode = activeRole === 'guest' || activeRole === 'patient';
 
+  if (isInitializing) return <div role="status" className="p-8">Đang kiểm tra phiên đăng nhập và tải hồ sơ…</div>;
   return (
     <div className="min-h-screen flex flex-col font-sans antialiased text-slate-800 bg-white">
       {/* 1. DEMO ROLE SWITCHER BAR (Sticky at topmost edge for exam grading & demonstration) */}
-      <DemoRoleSwitcherBar />
+      {isDemo && <div className="bg-slate-900 text-white p-3 text-sm flex flex-wrap gap-4 items-center">
+        <span>{isDemo ? 'CHẾ ĐỘ DEMO — dữ liệu giả, thao tác không lưu vào máy chủ' : 'CHẾ ĐỘ THẬT — đăng nhập và hồ sơ lưu trên máy chủ; danh mục công khai còn là dữ liệu mẫu'}</span>
+        <button disabled={isLoading || profileLoading} className="underline" onClick={() => { setIsAuthModalOpen(false); setPortalNav('home'); if (isDemo) void exitDemo(); else enterDemo(); }}>{isDemo ? 'Quay về chế độ thật' : 'Mở chế độ demo'}</button>
+      </div>}
+      {isDemo && <DemoRoleSwitcherBar />}
+      {!isDemo && error && <div role="alert" className="p-3 bg-red-50">{error} <button className="underline" onClick={() => void initializeAuth()}>Thử lại kết nối</button></div>}
 
       {/* 2. PWA Offline Indicator */}
       <OfflineIndicator />
@@ -115,6 +128,7 @@ export default function App() {
           {/* Template 5: Booking 3-Step Wizard with Login Prompt / Onboarding Gate & Overbooking Guard */}
           {currentPortalNav === 'booking' && (
             <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+              {!isDemo && <p className="mb-4 text-sm text-slate-500">Lịch khám minh họa · Chưa hỗ trợ lưu đặt lịch.</p>}
               <BookingWizardPage 
                 initialDoctor={selectedDoctorForBooking} 
                 onOpenAuthModal={() => handlePromptLogin('Vui lòng đăng nhập hoặc đăng ký tài khoản để tiến hành đặt lịch khám.')}
@@ -125,6 +139,7 @@ export default function App() {
           {/* Template 6: Patient Medical Visits, 5-Step Live Stepper & EMR Prescriptions */}
           {currentPortalNav === 'my-visits' && (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+              {!isDemo && <p className="text-sm text-slate-500">Dữ liệu minh họa, không phải bệnh án thực tế của bạn · Chưa hỗ trợ lưu thay đổi.</p>}
               <PatientVisitsPage />
             </div>
           )}
@@ -143,7 +158,7 @@ export default function App() {
            High-Density Workspace.
            NO Banner, NO Hospital Footer, NO Patient Chat Widget.
         ========================================================================= */
-        <WorkspaceLayout>
+        (isDemo || ['admin', 'receptionist', 'doctor_primary', 'doctor_imaging'].includes(activeRole)) ? <WorkspaceLayout>
           {/* Receptionist Desk */}
           {activeRole === 'receptionist' && <ReceptionistDesk />}
 
@@ -154,7 +169,7 @@ export default function App() {
 
           {/* Admin Workspace (HIS Dashboard Analytics, RAG Knowledge Base, Master Data, Audit Logs with Diff) */}
           {activeRole === 'admin' && <AdminWorkspace />}
-        </WorkspaceLayout>
+        </WorkspaceLayout> : <div className="p-8 space-y-4"><p>{activeRole === 'doctor' ? 'Workspace bác sĩ chưa được kết nối API phân công.' : 'Workspace quản trị chưa kết nối máy chủ. Hãy dùng chế độ demo để xem.'}</p><button className="underline" onClick={logout}>Đăng xuất</button></div>
       )}
 
       {/* Global Modals for Portal Interactions */}

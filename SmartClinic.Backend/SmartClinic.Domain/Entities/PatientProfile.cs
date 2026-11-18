@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SmartClinic.Domain.Entities;
@@ -6,6 +6,10 @@ namespace SmartClinic.Domain.Entities;
 public partial class PatientProfile
 {
     public Guid UserId { get; set; }
+
+    public decimal? HeightCm { get; set; }
+
+    public decimal? WeightKg { get; set; }
 
     public DateTime? Dob { get; set; }
 

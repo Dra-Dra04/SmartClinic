@@ -1,3 +1,5 @@
+using SmartClinic.API.Media;
+using SmartClinic.Application.Patients;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -20,7 +22,9 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPatientProfileService, PatientProfileService>();
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<ArticleMediaStorage>();
 
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 if (string.IsNullOrWhiteSpace(jwt.SigningKey) || Encoding.UTF8.GetByteCount(jwt.SigningKey) < 32 ||
@@ -41,6 +45,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 {
     options.MapInboundClaims = false;
     options.IncludeErrorDetails = false;
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            if (!Guid.TryParse(context.Principal?.FindFirst("sub")?.Value, out var userId))
+            {
+                context.Fail("Invalid account.");
+                return;
+            }
+
+            var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+            var account = await db.Users.AsNoTracking().Where(u => u.Id == userId)
+                .Select(u => new { u.IsActive, u.Role, u.SessionVersion })
+                .SingleOrDefaultAsync(context.HttpContext.RequestAborted);
+            if (account is null || !account.IsActive ||
+                account.Role != context.Principal?.FindFirst("role")?.Value ||
+                account.SessionVersion?.ToString() != context.Principal?.FindFirst("session_version")?.Value)
+                context.Fail("Account or session is no longer active.");
+        }
+    };
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -96,7 +120,13 @@ builder.Services.AddSwaggerGen(options =>
         }] = Array.Empty<string>()
     });
 });
-
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod());
+});
 var app = builder.Build();
 app.UseExceptionHandler();
 if (app.Environment.IsDevelopment())
@@ -106,6 +136,7 @@ if (app.Environment.IsDevelopment())
 }
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseCors("Frontend");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

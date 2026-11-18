@@ -87,8 +87,7 @@ export const MessengerAIChatWidget: React.FC = () => {
             className="hidden sm:flex items-center gap-2 mr-3 px-3.5 py-2 bg-white rounded-2xl shadow-xl border border-blue-100 text-xs font-semibold text-slate-700 cursor-pointer hover:border-blue-300 transition hover:shadow-2xl animate-bounce duration-1000"
           >
             <span className="w-2 h-2 rounded-full bg-[#0084c7] animate-ping" />
-            <span>Hỏi Bác sĩ AI & Đặt lịch RAG</span>
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>Nhờ AI tư vấn ngay!!</span>
           </div>
 
           {/* Main Floating Circle Button */}

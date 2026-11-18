@@ -1,3 +1,4 @@
+import { blockPreviewWrite } from '../../services/previewMode';
 import React, { useState } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useClinicStore } from '../../store/useClinicStore';
@@ -114,6 +115,7 @@ export const BookingWizardPage: React.FC<BookingWizardPageProps> = ({ initialDoc
   const afternoonSlots = timeSlots.filter((s) => s.period === 'afternoon');
 
   const handleConfirmBooking = () => {
+    if (blockPreviewWrite()) return;
     const appt = createAppointment({
       patientId: currentUser.id,
       patientName: currentUser.fullName,
