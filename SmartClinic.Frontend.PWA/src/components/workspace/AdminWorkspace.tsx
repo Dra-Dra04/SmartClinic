@@ -109,6 +109,13 @@ export const AdminWorkspace: React.FC = () => {
 
   useEffect(() => {
     if (isDemo || currentWorkspaceNav !== 'user_management') return;
+    const refresh = () => setAccountsRevision(value => value + 1);
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, [isDemo, currentWorkspaceNav]);
+
+  useEffect(() => {
+    if (isDemo || currentWorkspaceNav !== 'user_management') return;
 
     const request = new AbortController();
     setAccounts(null);

@@ -53,15 +53,17 @@ public sealed record UpdatePatientProfileRequest
 public sealed record PatientProfileResponse(Guid Id, string Email, string Phone,
     string? FullName, DateOnly? DateOfBirth, string? Gender, string? IdCardNumber,
     string? HealthInsuranceNumber, string? Address, decimal? HeightCm, decimal? WeightKg,
-    string? BloodType, string? Allergies, string? MedicalHistory, bool IsProfileCompleted);
+    string? BloodType, string? Allergies, string? MedicalHistory, bool IsProfileCompleted,
+    string? AvatarUrl = null);
 
 public interface IPatientProfileService
 {
     Task<PatientProfileResponse?> GetAsync(Guid userId, CancellationToken ct);
     Task<PatientProfileResponse?> UpdateAsync(Guid userId, UpdatePatientProfileRequest request, CancellationToken ct);
+    Task<string?> UploadAvatarAsync(Guid userId, Stream content, long length, CancellationToken ct);
 }
 
-public sealed class PatientProfileService(IUserRepository users, IUnitOfWork unitOfWork, TimeProvider clock)
+public sealed class PatientProfileService(IUserRepository users, IUnitOfWork unitOfWork, TimeProvider clock, IAvatarStorage avatars)
     : IPatientProfileService
 {
     public async Task<PatientProfileResponse?> GetAsync(Guid userId, CancellationToken ct)
@@ -98,6 +100,18 @@ public sealed class PatientProfileService(IUserRepository users, IUnitOfWork uni
         return Map(user);
     }
 
+    public async Task<string?> UploadAvatarAsync(Guid userId, Stream content, long length, CancellationToken ct)
+    {
+        var user = await users.FindByIdAsync(userId, ct);
+        if (user?.Role != UserRole.Patient) return null;
+        var stored = await avatars.StoreAsync(userId, content, length, ct);
+        if (stored is null) throw new ValidationException("Ảnh không hợp lệ hoặc vượt quá 5 MB.");
+        user.PatientProfile ??= new PatientProfile { UserId = user.Id, User = user };
+        user.PatientProfile.AvatarUrl = $"/api/patients/me/avatar?v={Guid.NewGuid():N}";
+        await unitOfWork.SaveChangesAsync(ct);
+        return user.PatientProfile.AvatarUrl;
+    }
+
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     private static PatientProfileResponse Map(User user)
     {
@@ -109,6 +123,6 @@ public sealed class PatientProfileService(IUserRepository users, IUnitOfWork uni
         return new(user.Id, user.Email, user.PhoneNumber, p?.FullName,
             p?.Dob is DateTime dob ? DateOnly.FromDateTime(dob) : null, p?.Gender, p?.IdentityCard,
             p?.HealthInsuranceNumber, p?.Address, p?.HeightCm, p?.WeightKg,
-            p?.BloodType, p?.Allergies, p?.BackgroundDisease, completed);
+            p?.BloodType, p?.Allergies, p?.BackgroundDisease, completed, p?.AvatarUrl);
     }
 }

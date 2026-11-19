@@ -25,6 +25,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPatientProfileService, PatientProfileService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ArticleMediaStorage>();
+builder.Services.AddSingleton<IAvatarStorage, AvatarStorage>();
 
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
 if (string.IsNullOrWhiteSpace(jwt.SigningKey) || Encoding.UTF8.GetByteCount(jwt.SigningKey) < 32 ||
@@ -131,10 +132,12 @@ var app = builder.Build();
 app.UseExceptionHandler();
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+
 }
-app.UseHttpsRedirection();
+// Android emulators use the local HTTP endpoint because the desktop development certificate is not trusted on the device.
+app.UseWhen(context => !(app.Environment.IsDevelopment() &&
+    (context.Connection.LocalPort == 5296 || app.Configuration.GetValue<bool>("MobileDevelopment:AllowHttp"))),
+    pipeline => pipeline.UseHttpsRedirection());
 app.UseRouting();
 app.UseCors("Frontend");
 app.UseRateLimiter();

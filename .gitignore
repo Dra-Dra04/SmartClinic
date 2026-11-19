@@ -16,3 +16,4 @@ out/
 .vscode/
 
 SmartClinic.Backend/SmartClinic.API/article-uploads/
+SmartClinic.Backend/SmartClinic.API/avatar-uploads/

@@ -59,6 +59,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (generation !== sessionGeneration) return;
       set({ profile, currentUser: { ...get().currentUser,
         fullName: profile.fullName || '', phone: profile.phone,
+        avatarUrl: profile.avatarUrl || undefined,
         isProfileCompleted: profile.isProfileCompleted,
       } });
     } catch (error) {
@@ -76,6 +77,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (generation !== sessionGeneration) return;
       set({ profile, currentUser: { ...get().currentUser,
         fullName: profile.fullName, phone: profile.phone,
+        avatarUrl: profile.avatarUrl || undefined,
         isProfileCompleted: profile.isProfileCompleted,
       } });
     } catch (error) {

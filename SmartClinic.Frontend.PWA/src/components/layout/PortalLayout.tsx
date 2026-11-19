@@ -1,3 +1,4 @@
+import { AccountAvatar } from '../common/AccountAvatar';
 import React, { useState } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useClinicStore } from '../../store/useClinicStore';
@@ -146,6 +147,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({
               </button>
             ) : (
               <div className="flex items-center gap-1.5 text-xs">
+                <AccountAvatar src={currentUser.avatarUrl} className="size-8 rounded-full" />
                 <span className="font-bold text-[#0084c7] hidden sm:inline">{currentUser.fullName || currentUser.email}</span>
                 {currentUser.isProfileCompleted ? (
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
@@ -342,13 +344,13 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({
             {/* Tab dành cho bệnh nhân đã đăng nhập */}
             {!isGuest && (
               <button
-                onClick={() => setPortalNav('my-visits')}
+                onClick={() => setPortalNav('profile')}
                 className={`flex-1 px-2 py-3.5 hover:bg-[#00679c] transition flex items-center gap-1.5 justify-center ${
-                  currentPortalNav === 'my-visits' ? 'bg-[#00679c]' : ''
+                  currentPortalNav === 'profile' ? 'bg-[#00679c]' : ''
                 }`}
               >
                 <FileText className="w-3.5 h-3.5 text-amber-300" />
-                <span>HỒ SƠ & EMR</span>
+                <span>THÔNG TIN CÁ NHÂN</span>
               </button>
             )}
 
@@ -409,10 +411,10 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({
             </button>
             {!isGuest && (
               <button
-                onClick={() => { setPortalNav('my-visits'); setMobileMenuOpen(false); }}
+                onClick={() => { setPortalNav('profile'); setMobileMenuOpen(false); }}
                 className="block w-full text-left py-2 px-3 rounded bg-amber-400 text-slate-900"
               >
-                Tiến trình ca khám & EMR
+                Thông tin cá nhân
               </button>
             )}
           </div>

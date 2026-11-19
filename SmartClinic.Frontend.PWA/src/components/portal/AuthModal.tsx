@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useClinicStore } from '../../store/useClinicStore';
-import { X, Lock, Mail, Phone, UserCheck, ArrowRight } from 'lucide-react';
+import { X, Lock, Mail, Phone, UserCheck, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -24,6 +24,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMes
 
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
+
+  const [visiblePasswords, setVisiblePasswords] = useState({ login: false, register: false, confirm: false });
+  useEffect(() => {
+    setVisiblePasswords({ login: false, register: false, confirm: false });
+  }, [isOpen, mode]);
+
+  const eyeButton = (field: 'login' | 'register' | 'confirm') => (
+    <button type="button" aria-label={visiblePasswords[field] ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+      aria-pressed={visiblePasswords[field]} disabled={isLoading}
+      onClick={() => setVisiblePasswords(previous => ({ ...previous, [field]: !previous[field] }))}
+      className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 hover:text-sky-700">
+      {visiblePasswords[field] ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+    </button>
+  );
 
   if (!isOpen) return null;
 
@@ -53,7 +67,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMes
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-emerald-100 text-xs">
+      <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-sky-100 text-xs">
         
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -70,6 +84,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMes
           </button>
         </div>
 
+        <div className="mb-5 flex flex-col items-center gap-2 text-center">
+          <img src="/phuc-an-logo.png" alt="Logo Phúc An" className="h-12 w-12 object-contain" />
+          <p className="text-xl font-black text-[#0084c7]">PHÚC AN HOSPITAL</p>
+        </div>
         {/* Notice Message if redirected from booking CTA */}
         {noticeMessage && (
           <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-2.5 text-amber-900">
@@ -87,7 +105,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMes
             disabled={isLoading || isDemo}
             onClick={() => { setMode('login'); clearError(); setMessage(''); }}
             className={`flex-1 py-2 rounded-lg font-bold transition text-xs ${
-              mode === 'login' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-slate-600'
+              mode === 'login' ? 'bg-white text-[#005a8b] shadow-2xs' : 'text-slate-600'
             }`}
           >
             Đăng nhập
@@ -97,7 +115,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMes
             disabled={isLoading || isDemo}
             onClick={() => { setMode('register'); clearError(); setMessage(''); }}
             className={`flex-1 py-2 rounded-lg font-bold transition text-xs ${
-              mode === 'register' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-slate-600'
+              mode === 'register' ? 'bg-white text-[#005a8b] shadow-2xs' : 'text-slate-600'
             }`}
           >
             Đăng ký mới
@@ -120,25 +138,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMes
                 value={emailOrPhone}
                 onChange={(e) => setEmailOrPhone(e.target.value)}
                 placeholder="Email đăng nhập"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
             </div>
 
             <div>
               <label className="block font-bold text-slate-700 mb-1">Mật khẩu *</label>
+              <div className="relative">
               <input
-                type="password"
+                type={visiblePasswords.login ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full pl-3.5 pr-11 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
+                {eyeButton('login')}
+              </div>
             </div>
 
             <button
               type="submit"
               disabled={isLoading || isDemo}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95 flex items-center justify-center gap-2"
+              className="w-full py-3 bg-[#0084c7] hover:bg-[#0073ae] text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95 flex items-center justify-center gap-2"
             >
               <span>Đăng nhập vào Hệ thống</span>
               <ArrowRight className="w-4 h-4" />
@@ -155,7 +176,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMes
                 value={regPhone}
                 onChange={(e) => setRegPhone(e.target.value)}
                 placeholder="0988776655"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
             </div>
 
@@ -168,26 +189,34 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMes
                 value={regEmail}
                 onChange={(e) => setRegEmail(e.target.value)}
                 placeholder="ngan.hk@gmail.com"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
             </div>
 
             <div>
               <label className="block font-bold text-slate-700 mb-1">Mật khẩu *</label>
+              <div className="relative">
               <input
-                type="password"
+                type={visiblePasswords.register ? 'text' : 'password'}
                 required
                 value={regPass}
                 onChange={(e) => setRegPass(e.target.value)}
                 minLength={10}
                 maxLength={128}
                 placeholder="Từ 10 đến 128 ký tự"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full pl-3.5 pr-11 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500/30"
               />
+                {eyeButton('register')}
+              </div>
             </div>
 
             <label className="block font-bold text-slate-700">Xác nhận mật khẩu *
-              <input className="block w-full border rounded-xl p-3" type="password" required minLength={10} maxLength={128} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+              <span className="relative mt-1 block">
+                <input className="block w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-3 pr-11"
+                  type={visiblePasswords.confirm ? 'text' : 'password'} required minLength={10} maxLength={128}
+                  value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                {eyeButton('confirm')}
+              </span>
             </label>
             <p className="text-[11px] text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
               📌 <strong>Lưu ý:</strong> Đăng ký thành công sẽ quay về form đăng nhập. Sau khi đăng nhập, bạn có thể cập nhật hồ sơ cá nhân.
@@ -196,7 +225,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, noticeMes
             <button
               type="submit"
               disabled={isLoading || isDemo}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95 flex items-center justify-center gap-2"
+              className="w-full py-3 bg-[#0084c7] hover:bg-[#0073ae] text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95 flex items-center justify-center gap-2"
             >
               <span>Đăng ký tài khoản</span>
               <ArrowRight className="w-4 h-4" />

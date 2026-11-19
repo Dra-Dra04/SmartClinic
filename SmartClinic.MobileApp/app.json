@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "BV Đa khoa Quốc tế Phúc An",
+    "slug": "phuc-an-hospital-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "primaryColor": "#0084c7",
+    "splash": {
+      "backgroundColor": "#0084c7",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "vn.phucanhospital.mobile"
+    },
+    "android": {
+      "package": "vn.phucanhospital.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#0084c7"
+      }
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-font",
+      "expo-secure-store",
+      ["expo-image-picker", {
+        "photosPermission": "Cho phép SmartClinic chọn ảnh đại diện từ thư viện ảnh.",
+        "cameraPermission": false,
+        "microphonePermission": false
+      }]
+    ]
+  }
+}

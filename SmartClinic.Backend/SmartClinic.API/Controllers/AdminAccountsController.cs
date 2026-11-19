@@ -14,7 +14,8 @@ namespace SmartClinic.API.Controllers;
 [Authorize(Policy = "AdminOnly")]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 [Route("api/admin/accounts")]
-public sealed class AdminAccountsController(ApplicationDbContext db, IPasswordService passwords, IUnitOfWork unitOfWork)
+public sealed class AdminAccountsController(ApplicationDbContext db, IPasswordService passwords, IUnitOfWork unitOfWork,
+    IAvatarStorage avatars)
     : ControllerBase
 {
     private const int PageSize = 20;
@@ -57,7 +58,24 @@ public sealed class AdminAccountsController(ApplicationDbContext db, IPasswordSe
                 u.Role != UserRole.Doctor || u.DoctorProfile == null ? null : u.DoctorProfile.Specialty.WorkspaceType,
                 u.Role == UserRole.Doctor && u.DoctorProfile != null ? (int?)u.DoctorProfile.SpecialtyId : null))
             .ToListAsync(ct);
-        return Ok(new { items = items.Take(PageSize), hasMore = items.Count > PageSize, filteredTotal, summary });
+        var accounts = items.Take(PageSize).Select(account => account with
+        {
+            AvatarUrl = string.IsNullOrWhiteSpace(account.AvatarUrl) ? null :
+                $"/api/admin/accounts/{account.Id}/avatar?{account.AvatarUrl.Split('?').Last()}"
+        });
+        return Ok(new { items = accounts, hasMore = items.Count > PageSize, filteredTotal, summary });
+    }
+
+    [HttpGet("{id:guid}/avatar")]
+    public async Task<IActionResult> Avatar(Guid id, CancellationToken ct)
+    {
+        var exists = await db.Users.AnyAsync(u => u.Id == id && u.DeletedAtUtc == null &&
+            u.PatientProfile != null && u.PatientProfile.AvatarUrl != null, ct);
+        if (!exists) return NotFound();
+        var stream = avatars.Open(id, out var contentType);
+        if (stream is null) return NotFound();
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        return File(stream, contentType);
     }
 
     [HttpGet("specialties")]
