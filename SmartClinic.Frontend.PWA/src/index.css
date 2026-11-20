@@ -1,1 +1,28 @@
 @import "tailwindcss";
+
+/* Management headers, filters and pagination stay outside the scrolling data. */
+.management-page {
+  display: flex;
+  flex: 1 1 0%;
+  min-height: 0;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+.management-page > * { flex-shrink: 0; }
+.management-page > .management-page,
+.management-page > .management-card,
+.management-page > .management-grid { flex: 1 1 0%; min-height: 0; }
+.management-card { display: flex; flex-direction: column; }
+.management-card > * { flex-shrink: 0; }
+.management-card > .overflow-x-auto {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: auto;
+}
+.management-card thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #f8fafc;
+}
+.management-grid { overflow: auto; align-content: start; }

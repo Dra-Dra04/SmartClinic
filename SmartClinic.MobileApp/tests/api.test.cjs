@@ -21,6 +21,7 @@ function load(file) {
 const client = load('client.ts');
 const patient = load('patient.ts');
 const articles = load('articles.ts');
+const clinic = load('clinic.ts');
 const user = { id: 'u1', role: 'patient', email: 'a@example.com', phone: '0912345678', fullName: 'Test',
   gender: 'Khác', dateOfBirth: '2000-02-29', address: 'Hà Nội', healthInsuranceNumber: 'TEST',
   isProfileCompleted: false, allergies: ['line one', 'line two'] };
@@ -101,6 +102,24 @@ test('API contracts and failure handling', async t => {
       };
       const detail = await articles.getArticle(article.slug);
       assert.equal(detail.content.length, 3);
+    });
+    await t.test('doctor slots and booking use shared API with patient authentication', async () => {
+      global.fetch = async (url, options) => {
+        assert.equal(url, client.API_URL + '/api/clinic/doctors/doctor-id/slots?date=2026-11-20');
+        return new Response('[{"id":"slot-id","startTime":"2026-11-20T02:00:00","room":"P101"}]');
+      };
+      const slots = await clinic.loadSlots('doctor-id', '2026-11-20');
+      assert.equal(slots[0].id, 'slot-id');
+      global.fetch = async (url, options) => {
+        assert.equal(url, client.API_URL + '/api/clinic/appointments');
+        assert.equal(options.method, 'POST');
+        assert.equal(options.headers.get('Authorization'), 'Bearer patient-token');
+        assert.deepEqual(JSON.parse(options.body), {timeSlotId:'slot-id',symptom:'Lý do khám'});
+        return new Response('{"id":"appointment-id","status":"Pending"}');
+      };
+      assert.equal((await clinic.bookSlot('slot-id','Lý do khám','patient-token')).status, 'Pending');
+      global.fetch = async () => new Response('{"message":"Khung giờ không còn trống."}', {status:409});
+      await assert.rejects(clinic.bookSlot('slot-id','','patient-token'), e => e.status===409 && /không còn trống/.test(e.message));
     });
   } finally { global.fetch = original; }
 });

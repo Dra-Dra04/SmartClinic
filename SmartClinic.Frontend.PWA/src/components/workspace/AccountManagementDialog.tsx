@@ -26,12 +26,16 @@ export function AccountManagementDialog({ account, onClose, onSaved }: {
     const request = new AbortController();
     setLookupError('');
     listAccountSpecialties(request.signal).then(items => {
-      if (!request.signal.aborted) setSpecialties(items);
+      if (!request.signal.aborted) {
+        if (account?.role === 'Doctor' && account.specialtyId && !items.some(s => s.id === account.specialtyId))
+          items = [...items, { id: account.specialtyId, name: (account.specialtyName ?? 'Chuyên khoa hiện tại') + ' (ngừng sử dụng)' }];
+        setSpecialties(items);
+      }
     }).catch(failure => {
       if (!request.signal.aborted) setLookupError(authErrorMessage(failure));
     });
     return () => request.abort();
-  }, [role, lookupAttempt]);
+  }, [role, lookupAttempt, account]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -97,7 +101,7 @@ export function AccountManagementDialog({ account, onClose, onSaved }: {
             <option value="Doctor">Bác sĩ</option>
             <option value="Patient">Bệnh nhân</option>
           </select></label>
-          {role === 'Doctor' && <label className="block">Khoa / Đơn vị công tác<select required className={field}
+          {role === 'Doctor' && <label className="block">Chuyên khoa<select required className={field}
             value={specialtyId} onChange={event => setSpecialtyId(event.target.value)}>
             <option value="">{specialties ? 'Chọn chuyên khoa' : 'Đang tải chuyên khoa…'}</option>
             {specialties?.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}

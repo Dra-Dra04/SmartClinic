@@ -14,10 +14,8 @@ import { MobileAppProvider, useMobileApp } from './src/context/MobileAppContext'
 import { BotIcon } from './src/components/BotIcon';
 import { AuthPromptModal } from './src/components/AuthPromptModal';
 import { HomeScreen } from './src/screens/HomeScreen';
-import { DoctorsScreen } from './src/screens/DoctorsScreen';
+import { ClinicDoctorsScreen, ClinicBookingScreen, ClinicVisitsScreen } from './src/screens/ClinicScreens';
 import { PricingScreen } from './src/screens/PricingScreen';
-import { BookingScreen } from './src/screens/BookingScreen';
-import { MyVisitsScreen } from './src/screens/MyVisitsScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { AIChatScreen } from './src/screens/AIChatScreen';
 import { MobileTabName } from './src/types';
@@ -54,10 +52,10 @@ const MainMobileShell: React.FC = () => {
       {/* 2. Vùng hiển thị các Màn hình */}
       <View style={styles.contentArea}>
         {activeTab === 'home' && <HomeScreen />}
-        {activeTab === 'doctors' && <DoctorsScreen />}
+        {activeTab === 'doctors' && <ClinicDoctorsScreen />}
         {activeTab === 'pricing' && <PricingScreen />}
-        {activeTab === 'booking' && <BookingScreen />}
-        {activeTab === 'visits' && <MyVisitsScreen />}
+        {activeTab === 'booking' && <ClinicBookingScreen />}
+        {activeTab === 'visits' && <ClinicVisitsScreen />}
         {activeTab === 'profile' && <ProfileScreen />}
         {activeTab === 'ai-chat' && <AIChatScreen />}
 

@@ -1,3 +1,4 @@
+import { HospitalBrand } from '../common/HospitalBrand';
 import { AccountAvatar } from '../common/AccountAvatar';
 import React, { useState } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -26,12 +27,14 @@ interface PortalLayoutProps {
   children: React.ReactNode;
   onOpenAuthModal: () => void;
   onOpenBookingWizard: () => void;
+  onOpenAdminWorkspace?: () => void;
 }
 
 export const PortalLayout: React.FC<PortalLayoutProps> = ({
   children,
   onOpenAuthModal,
   onOpenBookingWizard,
+  onOpenAdminWorkspace,
 }) => {
   const { currentUser, activeRole, openOnboardingGuard, setDemoState, isDemo, logout } = useAuthStore();
   const { currentPortalNav, setPortalNav } = useClinicStore();
@@ -76,26 +79,9 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({
         <div className="w-full flex flex-col lg:flex-row items-center justify-between gap-4">
           
           {/* Logo Bệnh viện Đa khoa Quốc tế Phúc An */}
-          <div 
-            onClick={() => setPortalNav('home')}
-            className="flex items-center gap-3 cursor-pointer group"
-          >
-            <div className="w-12 h-12 flex items-center justify-center shrink-0">
-              <svg viewBox="0 0 48 48" className="w-12 h-12 text-[#0084c7]" fill="currentColor">
-                {/* Stylized medical emblem */}
-                <path d="M24 4C14 4 6 12 6 22c0 8 5 15 12 18v-6c-4-2-7-7-7-12 0-7 6-13 13-13s13 6 13 13c0 5-3 10-7 12v6c7-3 12-10 12-18 0-10-8-18-18-18z" />
-                <path d="M24 12c-4 0-8 3.5-8 8 0 5 4 8 8 16 4-8 8-11 8-16 0-4.5-4-8-8-8zm0 11c-1.7 0-3-1.3-3-3s1.3-3 3-3 3 1.3 3 3-1.3 3-3 3z" />
-              </svg>
-            </div>
-            <div className="leading-tight">
-              <span className="text-[10px] tracking-wider font-bold text-slate-500 uppercase block">
-                PHUC AN INTERNATIONAL GENERAL HOSPITAL
-              </span>
-              <h1 className="text-xl sm:text-2xl font-black text-[#0084c7] tracking-tight">
-                Bệnh viện Đa khoa Quốc tế Phúc An
-              </h1>
-            </div>
-          </div>
+          <button type="button" aria-label="Về trang chủ Phúc An Hospital" onClick={() => setPortalNav('home')} className="text-left shrink-0">
+            <HospitalBrand />
+          </button>
 
           {/* Slogan Trung Tâm & Hotline Địa Chỉ */}
           <div className="hidden md:flex flex-col items-center text-center">
@@ -115,7 +101,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({
           </div>
 
           {/* Ô Tìm Kiếm & Nút ĐẶT LỊCH KHÁM & User Profile */}
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
             <div className="relative w-44 sm:w-56 hidden sm:block">
               <input
                 type="text"
@@ -135,6 +121,12 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({
               <span>ĐẶT LỊCH KHÁM</span>
             </button>
 
+            {activeRole === 'admin' && onOpenAdminWorkspace && <button type="button" onClick={onOpenAdminWorkspace}
+              className="rounded-lg border border-[#0084c7] px-3 py-2 text-xs font-bold text-[#0084c7] hover:bg-sky-50">
+              Trang quản trị
+            </button>}
+
+            {activeRole === 'patient' && <button type="button" className="rounded-lg border border-sky-200 px-3 py-2 text-xs font-semibold text-sky-700" onClick={() => setPortalNav('my-visits')}>Lịch khám của tôi</button>}
             {/* Auth / Profile */}
             {isGuest ? (
               <button
@@ -149,7 +141,7 @@ export const PortalLayout: React.FC<PortalLayoutProps> = ({
               <div className="flex items-center gap-1.5 text-xs">
                 <AccountAvatar src={currentUser.avatarUrl} className="size-8 rounded-full" />
                 <span className="font-bold text-[#0084c7] hidden sm:inline">{currentUser.fullName || currentUser.email}</span>
-                {currentUser.isProfileCompleted ? (
+                {activeRole === 'admin' ? <span className="text-[10px] font-semibold text-slate-500">Admin</span> : currentUser.isProfileCompleted ? (
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                 ) : (
                   <AlertCircle className="w-3.5 h-3.5 text-amber-500" />

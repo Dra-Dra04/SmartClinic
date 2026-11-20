@@ -116,7 +116,7 @@ var savesBefore = store.Saves;
 Check((await rehashService.LoginAsync(new(user.Email, password))).IsSuccess &&
     user.PasswordHash == "upgraded-hash" && store.Saves == savesBefore + 1, "Successful login upgrades an outdated password hash");
 // Profile regressions use the same fake repository; no production database writes.
-var profiles = new PatientProfileService(store, store, TimeProvider.System);
+var profiles = new PatientProfileService(store, store, TimeProvider.System, new UnusedAvatarStorage());
 var initialProfile = await profiles.GetAsync(user.Id, default);
 Check(initialProfile is { IsProfileCompleted: false }, "Empty registered profile is incomplete");
 var validProfile = new UpdatePatientProfileRequest(" Nguyễn Văn Test ", "0912345678",
@@ -177,4 +177,10 @@ sealed class RehashPasswords : IPasswordService
 {
     public string Hash(User user, string password) => "upgraded-hash";
     public PasswordCheckResult Verify(User? user, string password) => PasswordCheckResult.SuccessRehashNeeded;
+}
+sealed class UnusedAvatarStorage : IAvatarStorage
+{
+    public Task<StoredAvatar?> StoreAsync(Guid userId, Stream content, long length, CancellationToken ct) => throw new NotSupportedException();
+    public Stream? Open(Guid userId, out string contentType) { contentType = ""; return null; }
+    public void Delete(Guid userId) { }
 }

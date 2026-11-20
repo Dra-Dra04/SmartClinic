@@ -52,7 +52,8 @@ public sealed class AdminAccountsController(ApplicationDbContext db, IPasswordSe
         var items = await query.OrderBy(u => u.Email).ThenBy(u => u.Id)
             .Skip((page - 1) * PageSize).Take(PageSize + 1)
             .Select(u => new AccountItem(u.Id, u.Email, u.PhoneNumber, u.Role, u.IsActive,
-                u.Role != UserRole.Doctor || u.DoctorProfile == null ? u.Department : u.DoctorProfile.Specialty.Name,
+                u.Role != UserRole.Doctor || u.DoctorProfile == null ? u.Department :
+                    db.Departments.Where(d=>d.Id==u.DoctorProfile.PrimaryDepartmentId).Select(d=>d.Name).FirstOrDefault() ?? u.DoctorProfile.Specialty.Name,
                 (u.PatientProfile == null ? null : u.PatientProfile.FullName) ?? u.FullName,
                 u.PatientProfile == null ? null : u.PatientProfile.AvatarUrl,
                 u.Role != UserRole.Doctor || u.DoctorProfile == null ? null : u.DoctorProfile.Specialty.WorkspaceType,
@@ -80,7 +81,7 @@ public sealed class AdminAccountsController(ApplicationDbContext db, IPasswordSe
 
     [HttpGet("specialties")]
     public async Task<IActionResult> Specialties(CancellationToken ct) =>
-        Ok(await db.Specialties.AsNoTracking().OrderBy(s => s.Name)
+        Ok(await db.Specialties.AsNoTracking().Where(s => s.IsActive).OrderBy(s => s.Name)
             .Select(s => new { s.Id, s.Name }).ToListAsync(ct));
 
     [HttpPost]
@@ -92,7 +93,7 @@ public sealed class AdminAccountsController(ApplicationDbContext db, IPasswordSe
         string? specialtyName = null;
         if (request.Role == UserRole.Doctor)
         {
-            specialtyName = await db.Specialties.Where(s => s.Id == request.SpecialtyId)
+            specialtyName = await db.Specialties.Where(s => s.Id == request.SpecialtyId && s.IsActive)
                 .Select(s => s.Name).SingleOrDefaultAsync(ct);
             if (specialtyName is null)
                 return Problem(statusCode: 400, title: "Hãy chọn chuyên khoa hợp lệ cho bác sĩ.");
@@ -150,7 +151,7 @@ public sealed class AdminAccountsController(ApplicationDbContext db, IPasswordSe
 
         if (request.Role == UserRole.Doctor)
         {
-            if (!await db.Specialties.AnyAsync(s => s.Id == request.SpecialtyId, ct))
+            if (!await db.Specialties.AnyAsync(s => s.Id == request.SpecialtyId && (s.IsActive || (account.Role == UserRole.Doctor && account.DoctorProfile != null && account.DoctorProfile.SpecialtyId == s.Id)), ct))
                 return Problem(statusCode: 400, title: "Hãy chọn chuyên khoa hợp lệ cho bác sĩ.");
 
             account.DoctorProfile ??= new DoctorProfile { UserId = account.Id };

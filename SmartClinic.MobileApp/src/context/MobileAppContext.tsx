@@ -3,6 +3,7 @@ import { Platform, AppState } from 'react-native';
 import { ApiError, request } from '../api/client';
 import { getPatient, savePatient, patientAvatarSource } from '../api/patient';
 import { listArticles } from '../api/articles';
+import { loadDoctors, loadDepartments, doctorPhoto } from '../api/clinic';
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import {
   UserProfile,
@@ -16,14 +17,13 @@ import {
 } from '../types';
 import {
   GUEST_USER,
-  DOCTORS_DATA,
-  SPECIALTIES_DATA,
   TIME_SLOTS_DATA,
 } from '../data/mockData';
 
 export type DemoUserMode = 'guest' | 'patient_incomplete' | 'patient_completed';
 
 interface MobileAppContextValue {
+  accessToken?: string;
   currentUser: UserProfile;
   demoMode: DemoUserMode;
   activeTab: MobileTabName;
@@ -112,6 +112,14 @@ export const MobileAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const [token, setToken] = useState<string>();
+  const [publicDoctors, setPublicDoctors] = useState<Doctor[]>([]);
+  const [publicDepartments, setPublicDepartments] = useState<Specialty[]>([]);
+  useEffect(()=>{let live=true;loadDepartments().then(rows=>{if(live)setPublicDepartments(rows.map(d=>({id:String(d.id),name:d.name,code:d.code,description:'',iconName:'medical',doctorCount:0,consultationFee:0,highlightPoints:[]})));}).catch(()=>{});return()=>{live=false;};},[]);
+  useEffect(() => {
+    let live = true;
+    loadDoctors().then(rows => { if (live) setPublicDoctors(rows.map(d => ({id:d.id,fullName:d.fullName,title:d.title??'',specialtyId:String(d.departmentId),specialtyName:d.departmentName??'',roomNumber:'',experienceYears:0,rating:0,reviewCount:0,avatarUrl:d.hasPhoto?doctorPhoto(d.id):'',bio:d.bio??'',availableDays:[]}))); }).catch(()=>{});
+    return()=>{live=false;};
+  }, []);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [sessionError, setSessionError] = useState('');
   const epoch = useRef(0);
@@ -327,8 +335,9 @@ export const MobileAppProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         demoMode,
         activeTab,
         setActiveTab,
-        specialties: SPECIALTIES_DATA,
-        doctors: DOCTORS_DATA,
+        specialties: publicDepartments.map(d=>({...d,doctorCount:publicDoctors.filter(p=>p.specialtyId===d.id).length})),
+        doctors: publicDoctors,
+        accessToken: token,
         articles,
         timeSlots,
         appointments,

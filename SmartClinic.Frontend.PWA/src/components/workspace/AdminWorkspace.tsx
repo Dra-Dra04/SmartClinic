@@ -1,5 +1,8 @@
+import { StaffAppointmentsPage } from './StaffAppointmentsPage';
+import { AdminSchedulesPage } from './AdminSchedulesPage';
 import React, { useEffect, useState } from 'react';
 import { AdminArticlesPage } from './AdminArticlesPage';
+import { AdminClinicPage } from './AdminClinicPage';
 import { AccountAvatar } from '../common/AccountAvatar';
 import { accountRole, listAdminAccounts, setAdminAccountStatus, deleteAdminAccount } from '../../services/adminAccountsService';
 import { AccountManagementDialog } from './AccountManagementDialog';
@@ -451,11 +454,12 @@ export const AdminWorkspace: React.FC = () => {
   const formatVnd = (num: number) => num.toLocaleString('vi-VN') + ' đ';
 
   return (
-    <div className="space-y-6">
+    <div className={['departments', 'doctors', 'schedules', 'user_management', 'news_management', 'rag_kb', 'master_data', 'audit_logs', 'appointments'].includes(currentWorkspaceNav) ? 'flex h-full min-h-0 flex-col' : 'space-y-6'}>
 
       {/* =========================================================================
           TAB 1: ANALYTICS HIS DASHBOARD
       ========================================================================= */}
+      {!isDemo && currentWorkspaceNav === 'appointments' && <StaffAppointmentsPage />}
       {currentWorkspaceNav === 'analytics' && (
         <div className="space-y-6">
           {/* Header */}
@@ -644,7 +648,7 @@ export const AdminWorkspace: React.FC = () => {
           TAB: USER & ROLE PERMISSION MANAGEMENT (QUẢN LÝ TÀI KHOẢN & PHÂN QUYỀN)
       ========================================================================= */}
       {currentWorkspaceNav === 'user_management' && (
-        <div className="space-y-6">
+        <div className="management-page">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -704,7 +708,7 @@ export const AdminWorkspace: React.FC = () => {
           </div>
 
           {/* User Table Card */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+          <div className="management-card bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
@@ -907,8 +911,9 @@ export const AdminWorkspace: React.FC = () => {
             setAccountsRevision(value => value + 1);
           }} />}
       {currentWorkspaceNav === 'news_management' && !isDemo && <AdminArticlesPage />}
+      {!isDemo && (currentWorkspaceNav === 'departments' || currentWorkspaceNav === 'doctors' || currentWorkspaceNav === 'schedules') && (currentWorkspaceNav === 'schedules' ? <AdminSchedulesPage /> : <AdminClinicPage mode={currentWorkspaceNav} />)}
       {currentWorkspaceNav === 'news_management' && isDemo && (
-        <div className="space-y-6">
+        <div className="management-page">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -961,7 +966,7 @@ export const AdminWorkspace: React.FC = () => {
           </div>
 
           {/* Articles Management Table */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+          <div className="management-card bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
@@ -1132,7 +1137,7 @@ export const AdminWorkspace: React.FC = () => {
           TAB 2: RAG KNOWLEDGE BASE MANAGER (KHO TRI THỨC Y TẾ & PINECONE)
       ========================================================================= */}
       {currentWorkspaceNav === 'rag_kb' && (
-        <div className="space-y-6">
+        <div className="management-page">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -1199,7 +1204,7 @@ export const AdminWorkspace: React.FC = () => {
           </div>
 
           {/* Table of RAG Documents */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+          <div className="management-card bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                 Danh sách Tài liệu Phác đồ & Hướng dẫn trong Knowledge Base ({ragDocuments.length})
@@ -1300,7 +1305,7 @@ export const AdminWorkspace: React.FC = () => {
           TAB 3: MASTER DATA & DOCTOR SCHEDULES
       ========================================================================= */}
       {currentWorkspaceNav === 'master_data' && (
-        <div className="space-y-6">
+        <div className="management-page">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -1360,7 +1365,7 @@ export const AdminWorkspace: React.FC = () => {
 
           {/* Sub-tab 1: Time Slots & Capacity Editor (Overbooking Guard) */}
           {masterSubTab === 'slots' && (
-            <div className="space-y-4">
+            <div className="management-page">
               <div className="p-4 bg-blue-50/70 border border-blue-200/90 rounded-2xl flex items-center justify-between">
                 <div>
                   <h4 className="text-xs font-bold text-[#005a8b] flex items-center gap-1.5">
@@ -1373,7 +1378,7 @@ export const AdminWorkspace: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="management-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {timeSlots.map((slot) => {
                   const isFull = slot.bookedCount >= slot.maxCapacity;
                   const percent = Math.min(100, Math.round((slot.bookedCount / slot.maxCapacity) * 100));
@@ -1446,7 +1451,7 @@ export const AdminWorkspace: React.FC = () => {
 
           {/* Sub-tab 2: Specialties Catalog */}
           {masterSubTab === 'specialties' && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            <div className="management-card bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
               <div className="p-4 border-b border-slate-100 flex items-center justify-between">
                 <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                   Danh mục Chuyên khoa Khám bệnh ({SPECIALTIES_DATA.length})
@@ -1481,7 +1486,7 @@ export const AdminWorkspace: React.FC = () => {
 
           {/* Sub-tab 3: Doctors Catalog */}
           {masterSubTab === 'doctors' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="management-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {DOCTORS_DATA.map((doc) => (
                 <div key={doc.id} className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
                   <div className="flex items-center gap-3 mb-3">
@@ -1508,7 +1513,7 @@ export const AdminWorkspace: React.FC = () => {
 
           {/* Sub-tab 4: Services Catalog */}
           {masterSubTab === 'services' && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            <div className="management-card bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
               <div className="p-4 border-b border-slate-100 flex items-center justify-between">
                 <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                   Bảng giá Dịch vụ Kỹ thuật & Cận lâm sàng ({CLINICAL_SERVICES_CATALOG.length})
@@ -1543,7 +1548,7 @@ export const AdminWorkspace: React.FC = () => {
 
           {/* Sub-tab 5: Medicines Catalog */}
           {masterSubTab === 'medicines' && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+            <div className="management-card bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
               <div className="p-4 border-b border-slate-100 flex items-center justify-between">
                 <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                   Danh mục Thuốc & Dược phẩm BHYT ({MEDICINES_CATALOG.length})
@@ -1582,7 +1587,7 @@ export const AdminWorkspace: React.FC = () => {
           TAB 4: AUDIT LOGS WITH OLD/NEW JSON DIFF MODAL
       ========================================================================= */}
       {currentWorkspaceNav === 'audit_logs' && (
-        <div className="space-y-6">
+        <div className="management-page">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -1601,7 +1606,7 @@ export const AdminWorkspace: React.FC = () => {
           </div>
 
           {/* Audit Logs Table */}
-          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+          <div className="management-card bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between">
               <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                 Lịch sử Thao tác & Biến động Dữ liệu ({auditLogs.length} bản ghi)

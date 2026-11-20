@@ -27,6 +27,7 @@ export const HomeScreen: React.FC = () => {
   } = useMobileApp();
 
   // Trạng thái phóng to / thu nhỏ chuyên khoa ngay tại Trang chủ (giống hệt Web)
+  const [showAllSpecialties, setShowAllSpecialties] = useState(false);
   const [expandedSpecialty, setExpandedSpecialty] = useState<Specialty | null>(null);
 
   // Modal đọc chi tiết bài báo Tin tức hoạt động
@@ -364,7 +365,7 @@ export const HomeScreen: React.FC = () => {
 
             {(() => {
               const deptDocs = doctors.filter((d) => d.specialtyId === expandedSpecialty.id);
-              const list = deptDocs.length > 0 ? deptDocs : [doctors[0]];
+              const list = deptDocs;
               return list.map((doc) => (
                 <View key={doc.id} style={styles.deptDocCard}>
                   <View style={styles.deptDocRow}>
@@ -397,8 +398,9 @@ export const HomeScreen: React.FC = () => {
           </View>
         ) : (
           /* TRƯỜNG HỢP 2: LƯỚI DANH MỤC KỸ THUẬT & CHUYÊN KHOA */
+          <View>
           <View style={styles.specGrid}>
-            {specialties.map((spec) => (
+            {(showAllSpecialties ? specialties : specialties.slice(0, 4)).map((spec) => (
               <TouchableOpacity
                 key={spec.id}
                 style={styles.specCard}
@@ -420,6 +422,16 @@ export const HomeScreen: React.FC = () => {
                 </View>
               </TouchableOpacity>
             ))}
+          </View>
+          {specialties.length > 4 && <TouchableOpacity
+            style={styles.specialtiesToggle}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showAllSpecialties }}
+            onPress={() => setShowAllSpecialties(value => !value)}
+          >
+            <Text style={styles.specialtiesToggleText}>{showAllSpecialties ? 'Thu gọn' : `Xem thêm ${specialties.length - 4} khoa khác`}</Text>
+            <Ionicons name={showAllSpecialties ? 'chevron-up' : 'chevron-down'} size={18} color={COLORS.primary} />
+          </TouchableOpacity>}
           </View>
         )}
       </View>
@@ -830,6 +842,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.primary,
   },
+  specialtiesToggle: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 12, marginTop: 12, borderRadius: 12,
+    borderWidth: 1, borderColor: '#dbeafe', backgroundColor: '#f0f9ff',
+  },
+  specialtiesToggleText: { color: COLORS.primary, fontSize: 13, fontWeight: '600' },
   specGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

@@ -163,6 +163,7 @@ public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
 
         modelBuilder.Entity<Specialty>(entity =>
         {
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.WorkspaceType).HasMaxLength(30);
             entity.HasKey(e => e.Id).HasName("PK__Specialt__3214EC0795810B99");
 

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { SPECIALTIES_DATA, DOCTORS_DATA, CLINICAL_SERVICES_CATALOG } from '../../services/mockData';
 import { Doctor, Specialty, HospitalArticle } from '../../types';
 import { PortalNews } from './PortalNews';
+import { ClinicDoctors, ClinicDepartments } from './ClinicDoctors';
 import { useClinicStore } from '../../store/useClinicStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useChatStore } from '../../store/useChatStore';
@@ -41,6 +42,7 @@ import {
 } from 'lucide-react';
 
 interface PortalHomeProps {
+  onBookClinicDoctor: (id: string) => void;
   onOpenBookingWizard: (doctor?: Doctor) => void;
   onSelectSpecialty: (specialty: Specialty) => void;
   onOpenAuthModal?: () => void;
@@ -48,6 +50,7 @@ interface PortalHomeProps {
 
 export const PortalHome: React.FC<PortalHomeProps> = ({ 
   onOpenBookingWizard,
+  onBookClinicDoctor,
   onSelectSpecialty,
   onOpenAuthModal,
 }) => {
@@ -501,6 +504,7 @@ export const PortalHome: React.FC<PortalHomeProps> = ({
             </div>
           ))}
         </div> : <PortalNews />}
+        {!isDemo && <ClinicDoctors featured onBook={onBookClinicDoctor}/>}
       </section>
 
       {/* Article Detail Modal */}
@@ -539,7 +543,8 @@ export const PortalHome: React.FC<PortalHomeProps> = ({
           Cyan Blue rounded pill badge: DANH MỤC KỸ THUẬT
           Technical services & Specialties grid (with in-place zoom/shrink)
       ========================================================================= */}
-      <section ref={specialtySectionRef} id="specialties-section" className="max-w-7xl mx-auto px-4 sm:px-6 scroll-mt-20">
+      {!isDemo && <ClinicDepartments onBook={onBookClinicDoctor}/>}
+      {isDemo && <section ref={specialtySectionRef} id="specialties-section" className="max-w-7xl mx-auto px-4 sm:px-6 scroll-mt-20">
         
         {/* Cyan Blue Pill Header (Screenshot 2) */}
         <div className="text-center my-6">
@@ -612,6 +617,7 @@ export const PortalHome: React.FC<PortalHomeProps> = ({
             </div>
 
             {/* Danh sách Bác sĩ trực thuộc khoa */}
+            {!isDemo && <button className="text-sky-600 font-semibold" onClick={()=>setPortalNav('doctors')}>Xem bác sĩ theo khoa và lịch khám thực tế</button>}
             <div className="space-y-3">
               <h4 className="text-base sm:text-lg font-bold text-[#005a8b] flex items-center gap-2">
                 <Stethoscope className="w-5 h-5 text-[#0084c7]" />
@@ -620,10 +626,10 @@ export const PortalHome: React.FC<PortalHomeProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(() => {
-                  const deptDocs = DOCTORS_DATA.filter(
+                  const deptDocs = (isDemo ? DOCTORS_DATA : []).filter(
                     (d) => d.specialtyId === expandedSpecialty.id || d.specialtyName.includes(expandedSpecialty.name.replace('Khoa ', ''))
                   );
-                  const displayDocs = deptDocs.length > 0 ? deptDocs : [DOCTORS_DATA[0]];
+                  const displayDocs = deptDocs.length > 0 ? deptDocs : isDemo ? [DOCTORS_DATA[0]] : [];
 
                   return displayDocs.map((doc) => (
                     <div
@@ -714,7 +720,7 @@ export const PortalHome: React.FC<PortalHomeProps> = ({
             ))}
           </div>
         )}
-      </section>
+      </section>}
 
       {/* =========================================================================
           7. SECTION QUY TRÌNH KHÁM BỆNH (INSTRUCTIONS)

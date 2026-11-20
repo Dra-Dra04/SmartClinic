@@ -1,3 +1,4 @@
+import { StaffAppointmentsPage } from './components/workspace/StaffAppointmentsPage';
 import { AUTH_EXPIRED_EVENT } from './services/axiosClient';
 /**
  * @license
@@ -11,6 +12,8 @@ import { DemoRoleSwitcherBar } from './components/layout/DemoRoleSwitcherBar';
 import { PortalLayout } from './components/layout/PortalLayout';
 import { WorkspaceLayout } from './components/layout/WorkspaceLayout';
 import { PortalHome } from './components/portal/PortalHome';
+import { ClinicDoctors } from './components/portal/ClinicDoctors';
+import { ClinicBooking, ClinicAppointments } from './components/portal/ClinicBooking';
 import { BookingWizardPage } from './components/portal/BookingWizardPage';
 import { OnboardingProfilePage } from './components/portal/OnboardingProfilePage';
 import { PatientVisitsPage } from './components/portal/PatientVisitsPage';
@@ -39,6 +42,8 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalNotice, setAuthModalNotice] = useState<string>('');
   const [selectedDoctorForBooking, setSelectedDoctorForBooking] = useState<Doctor | undefined>(undefined);
+  const [clinicDoctorId, setClinicDoctorId] = useState<string>();
+  const openClinicBooking = (id: string) => { setClinicDoctorId(id); setPortalNav('booking'); };
   const [selectedSpecialty, setSelectedSpecialty] = useState<Specialty>(SPECIALTIES_DATA[0]);
 
   const handlePromptLogin = (customMessage?: string) => {
@@ -49,6 +54,7 @@ export default function App() {
   };
 
   const handleOpenBooking = (doctor?: Doctor) => {
+    if (!isDemo) setClinicDoctorId(undefined);
     if (activeRole === 'guest') {
       handlePromptLogin('Vui lòng đăng nhập hoặc đăng ký tài khoản để tiến hành đặt lịch khám.');
       return;
@@ -57,11 +63,13 @@ export default function App() {
     setPortalNav('booking');
   };
 
-  const isPortalMode = activeRole === 'guest' || activeRole === 'patient';
+  const [adminPortalOpen, setAdminPortalOpen] = useState(false);
+  useEffect(() => { setAdminPortalOpen(false); }, [activeRole]);
+  const isPortalMode = activeRole === 'guest' || activeRole === 'patient' || (activeRole === 'admin' && adminPortalOpen);
 
   if (isInitializing) return <div role="status" className="p-8">Đang kiểm tra phiên đăng nhập và tải hồ sơ…</div>;
   return (
-    <div className="min-h-screen flex flex-col font-sans antialiased text-slate-800 bg-white">
+    <div className={`${isPortalMode ? 'min-h-screen' : 'h-dvh overflow-hidden'} flex flex-col font-sans antialiased text-slate-800 bg-white`}>
       {/* 1. DEMO ROLE SWITCHER BAR (Sticky at topmost edge for exam grading & demonstration) */}
       {isDemo && <div className="bg-slate-900 text-white p-3 text-sm flex flex-wrap gap-4 items-center">
         <span>{isDemo ? 'CHẾ ĐỘ DEMO — dữ liệu giả, thao tác không lưu vào máy chủ' : 'CHẾ ĐỘ THẬT — đăng nhập và hồ sơ lưu trên máy chủ; danh mục công khai còn là dữ liệu mẫu'}</span>
@@ -81,6 +89,7 @@ export default function App() {
            Messenger AI RAG Chat Widget
         ========================================================================= */
         <PortalLayout
+          onOpenAdminWorkspace={() => setAdminPortalOpen(false)}
           onOpenAuthModal={() => handlePromptLogin()}
           onOpenBookingWizard={() => handleOpenBooking()}
         >
@@ -88,6 +97,7 @@ export default function App() {
           {(currentPortalNav === 'home' || currentPortalNav === 'instructions') && (
             <PortalHome 
               onOpenBookingWizard={handleOpenBooking} 
+              onBookClinicDoctor={openClinicBooking}
               onSelectSpecialty={(spec) => {
                 setSelectedSpecialty(spec);
                 // Giữ nguyên ở Trang chủ với hiệu ứng phóng to / thu nhỏ tại chỗ theo yêu cầu
@@ -98,7 +108,7 @@ export default function App() {
 
           {/* Template 2: Dedicated Specialty Detail View (Specialty info + doctors in this specialty) */}
           {currentPortalNav === 'specialties' && (
-            <SpecialtyDetailTemplate
+            !isDemo ? <ClinicDoctors onBook={openClinicBooking}/> : <SpecialtyDetailTemplate
               specialty={selectedSpecialty}
               onBack={() => setPortalNav('home')}
               onSelectDoctor={(doc) => handleOpenBooking(doc)}
@@ -111,7 +121,7 @@ export default function App() {
 
           {/* Template 3: Doctors Directory View */}
           {currentPortalNav === 'doctors' && (
-            <DoctorsDirectoryTemplate
+            !isDemo ? <ClinicDoctors onBook={openClinicBooking}/> : <DoctorsDirectoryTemplate
               onBack={() => setPortalNav('home')}
               onSelectDoctor={(doc) => handleOpenBooking(doc)}
             />
@@ -128,19 +138,17 @@ export default function App() {
           {/* Template 5: Booking 3-Step Wizard with Login Prompt / Onboarding Gate & Overbooking Guard */}
           {currentPortalNav === 'booking' && (
             <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-              {!isDemo && <p className="mb-4 text-sm text-slate-500">Lịch khám minh họa · Chưa hỗ trợ lưu đặt lịch.</p>}
-              <BookingWizardPage 
+              {!isDemo ? <ClinicBooking doctorId={clinicDoctorId} isGuest={activeRole==='guest'} onLogin={()=>handlePromptLogin()} /> : <BookingWizardPage
                 initialDoctor={selectedDoctorForBooking} 
                 onOpenAuthModal={() => handlePromptLogin('Vui lòng đăng nhập hoặc đăng ký tài khoản để tiến hành đặt lịch khám.')}
-              />
+              />}
             </div>
           )}
 
           {/* Template 6: Patient Medical Visits, 5-Step Live Stepper & EMR Prescriptions */}
           {currentPortalNav === 'my-visits' && (
             <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-              {!isDemo && <p className="text-sm text-slate-500">Dữ liệu minh họa, không phải bệnh án thực tế của bạn · Chưa hỗ trợ lưu thay đổi.</p>}
-              <PatientVisitsPage />
+              {!isDemo ? <ClinicAppointments/> : <PatientVisitsPage />}
             </div>
           )}
 
@@ -158,9 +166,9 @@ export default function App() {
            High-Density Workspace.
            NO Banner, NO Hospital Footer, NO Patient Chat Widget.
         ========================================================================= */
-        (isDemo || ['admin', 'receptionist', 'doctor_primary', 'doctor_imaging'].includes(activeRole)) ? <WorkspaceLayout>
+        (isDemo || ['admin', 'receptionist', 'doctor_primary', 'doctor_imaging'].includes(activeRole)) ? <WorkspaceLayout onOpenPortal={() => { setPortalNav('home'); setAdminPortalOpen(true); }}>
           {/* Receptionist Desk */}
-          {activeRole === 'receptionist' && <ReceptionistDesk />}
+          {activeRole === 'receptionist' && (isDemo ? <ReceptionistDesk /> : <StaffAppointmentsPage />)}
 
           {/* Clinical Doctor Workspace (DOC-01 Primary & DOC-02 Imaging) */}
           {(activeRole === 'doctor_primary' || activeRole === 'doctor_imaging') && (

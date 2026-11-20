@@ -69,7 +69,9 @@ export const AIChatScreen: React.FC = () => {
       const lower = text.toLowerCase();
       let reply: MobileChatMessage;
 
-      if (
+      if (doctors.length === 0) {
+        reply = { id: 'msg-ai-' + Date.now(), sender: 'assistant', content: 'Chưa có danh sách bác sĩ. Bạn có thể mở mục Tìm Bác sĩ để tải lại thông tin và xem lịch khám thực tế.', timestamp: 'Vừa xong' };
+      } else if (
         lower.includes('đau tức') ||
         lower.includes('thượng vị') ||
         lower.includes('dạ dày') ||

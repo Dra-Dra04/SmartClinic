@@ -12,6 +12,7 @@ const statusLabels: Record<ArticleStatus, string> = {
 };
 const fieldClass = 'w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500';
 const buttonClass = 'inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold hover:bg-slate-100 disabled:opacity-50';
+const filterClass = 'h-9 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500';
 const primaryClass = 'inline-flex items-center gap-1.5 rounded-xl bg-[#0084c7] px-4 py-2 text-xs font-bold text-white hover:bg-[#0072bc] disabled:opacity-50';
 type Selection = { mode: 'edit' | 'preview'; row: ArticleRow | null };
 
@@ -92,7 +93,7 @@ export function AdminArticlesPage() {
     { label: 'Tổng lượt xem', value: list?.summary.views, caption: 'Lượt mở bài công khai', color: 'text-amber-800' },
   ];
 
-  return <section className="space-y-6">
+  return <section className="management-page">
     <header className="flex flex-wrap items-center justify-between gap-4">
       <div>
         <h2 className="flex items-center gap-2 text-xl font-bold text-slate-900">
@@ -120,22 +121,22 @@ export function AdminArticlesPage() {
     </div>}
     {categories?.length === 0 && <p className="text-sm text-slate-600">Chưa có chuyên mục đang hoạt động để tạo bài viết.</p>}
 
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xs">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider">Danh sách bài viết & tin tức ({list?.filteredTotal ?? '—'} / {list?.summary.total ?? '—'})</h3>
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="relative">
+    <div className="management-card overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+        <h3 className="shrink-0 text-xs font-bold uppercase tracking-wider">Danh sách bài viết & tin tức ({list?.filteredTotal ?? '—'} / {list?.summary.total ?? '—'})</h3>
+        <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
+          <label className="relative min-w-0 flex-1 sm:flex-none sm:w-52">
             <Search className="absolute left-2.5 top-2.5 size-3.5 text-slate-400" aria-hidden="true" />
             <input type="search" aria-label="Tìm bài viết" placeholder="Tìm tiêu đề, tác giả…" maxLength={300}
-              className={fieldClass + ' pl-8'} value={search}
+              className={filterClass + ' w-full pl-8 pr-3'} value={search}
               onChange={event => { setPage(1); setSearch(event.target.value); }} />
           </label>
-          <select aria-label="Chuyên mục" className={fieldClass + ' w-auto'} value={categoryId}
+          <select aria-label="Chuyên mục" className={filterClass + ' w-44 max-w-full'} value={categoryId}
             onChange={event => { setPage(1); setCategoryId(Number(event.target.value)); }}>
             <option value={0}>Tất cả chuyên mục</option>
             {categories?.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
           </select>
-          <select aria-label="Trạng thái" className={fieldClass + ' w-auto'} value={status}
+          <select aria-label="Trạng thái" className={filterClass + ' w-36 max-w-full'} value={status}
             onChange={event => { setPage(1); setStatus(event.target.value as ArticleStatus | ''); }}>
             <option value="">Tất cả trạng thái</option>
             {Object.entries(statusLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
@@ -165,7 +166,7 @@ export function AdminArticlesPage() {
                 </div>
               </div>
             </td>
-            <td className="p-4"><span className="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-sky-800">{row.categoryName}</span></td>
+            <td className="p-4"><span className="inline-flex whitespace-nowrap rounded-lg border border-sky-200 bg-sky-50 px-2 py-1 text-sky-800">{row.categoryName}</span></td>
             <td className="p-4">
               <p>{row.authorDisplayName || '—'}</p>
               <p className="text-[10px] text-slate-500">{formatArticleDate(row.publishedAtUtc ?? row.createdAtUtc)}</p>

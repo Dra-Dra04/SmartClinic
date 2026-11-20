@@ -378,7 +378,7 @@ export const ProfileScreen: React.FC = () => {
 
             <TouchableOpacity style={styles.logoutBtn} onPress={logoutToGuest}>
               <Ionicons name="log-out-outline" size={16} color={COLORS.rose} />
-              <Text style={styles.logoutBtnText}>Đăng xuất (Về chế độ Khách vãng lai)</Text>
+              <Text style={styles.logoutBtnText}>Đăng xuất</Text>
             </TouchableOpacity>
           </>
         ) : (
@@ -418,7 +418,7 @@ export const ProfileScreen: React.FC = () => {
               onChangeText={(text) => setFormData({ ...formData, dateOfBirth: text })}
             />
 
-            <Text style={styles.inputLabel}>CCCD (hoặc nhập BHYT bên dưới)</Text>
+            <Text style={styles.inputLabel}>CCCD</Text>
             <TextInput
               style={styles.inputField}
               value={formData.idCardNumber}
@@ -445,7 +445,7 @@ export const ProfileScreen: React.FC = () => {
 
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>Chiều cao (cm)</Text>
+                <Text style={styles.inputLabel}>Chiều cao</Text>
                 <TextInput
                   style={styles.inputField}
                   value={formData.heightCm}
@@ -454,7 +454,7 @@ export const ProfileScreen: React.FC = () => {
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.inputLabel}>Cân nặng (kg)</Text>
+                <Text style={styles.inputLabel}>Cân nặng</Text>
                 <TextInput
                   style={styles.inputField}
                   value={formData.weightKg}
